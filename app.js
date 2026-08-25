@@ -481,6 +481,30 @@
     URL.revokeObjectURL(url);
   });
 
+  const TYPE_LABELS_PT = { expense: "Despesa", income: "Rendimento", investment: "Investimento" };
+
+  document.getElementById("exportExcelBtn").addEventListener("click", () => {
+    if (state.data.length === 0) {
+      toast("No transactions to export.");
+      return;
+    }
+    const rows = state.data
+      .slice()
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+      .map((e) => ({
+        Tipo: TYPE_LABELS_PT[e.type] || "Despesa",
+        Data: new Date(e.date + "T00:00:00Z"),
+        Valor: e.amount,
+        "Descrição": e.note || "",
+        Categoria: e.category,
+        App: e.account || "",
+      }));
+    const ws = XLSX.utils.json_to_sheet(rows, { cellDates: true });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Finanças");
+    XLSX.writeFile(wb, `expense-tracker-${todayISO()}.xlsx`, { cellDates: true });
+  });
+
   document.getElementById("restoreInput").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;

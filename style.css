@@ -123,6 +123,9 @@ select, input[type="text"], input[type="number"], input[type="date"] {
 .btn-tool-primary { background: #e7e9eb; color: var(--primary); border-color: #d7dbde; }
 .btn-tool-primary:hover { background: #d7dbde; }
 
+.btn-tool-steel { background: #e7ecf0; color: #5d8099; border-color: #ced9e0; }
+.btn-tool-steel:hover { background: #ced9e0; }
+
 .btn-tool-invest { background: #e9f0f4; color: var(--invest); border-color: #d4e0e9; }
 .btn-tool-invest:hover { background: #d4e0e9; }
 
