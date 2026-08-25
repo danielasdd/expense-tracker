@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Expense Tracker</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#364b59">
+<link rel="icon" href="icons/icon-192.png">
+<!-- iOS "Add to Home Screen" support -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Expenses">
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <h1>Expense Tracker</h1>
+    <div class="topbar-actions">
+      <label class="range-label">
+        Range:
+        <select id="rangeSelect">
+          <option value="all">All time</option>
+          <option value="year">This year</option>
+          <option value="month" selected>This month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <div id="customRange" class="custom-range hidden">
+        <input type="date" id="customFrom">
+        <span>to</span>
+        <input type="date" id="customTo">
+      </div>
+      <button id="importBtn" class="btn btn-secondary">Import Excel</button>
+      <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
+      <label class="btn btn-secondary file-label">
+        Restore JSON
+        <input type="file" id="restoreInput" accept="application/json" hidden>
+      </label>
+      <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
+    </div>
+  </header>
+
+  <main class="layout">
+
+    <section class="panel form-panel">
+      <h2 id="formTitle">Add Expense</h2>
+      <form id="expenseForm">
+        <input type="hidden" id="expenseId">
+
+        <div class="field-row">
+          <label for="amount">Amount (€)</label>
+          <input type="number" id="amount" step="0.01" min="0" required placeholder="0.00">
+        </div>
+
+        <div class="field-row">
+          <label for="category">Category</label>
+          <input type="text" id="category" list="categoryList" required placeholder="e.g. Comida">
+          <datalist id="categoryList"></datalist>
+        </div>
+
+        <div class="field-row">
+          <label for="date">Date</label>
+          <input type="date" id="date" required>
+        </div>
+
+        <div class="field-row">
+          <label for="note">Note</label>
+          <input type="text" id="note" placeholder="Optional description">
+        </div>
+
+        <div class="field-row">
+          <label for="type">Type</label>
+          <select id="type">
+            <option value="expense" selected>Expense</option>
+            <option value="income">Income</option>
+            <option value="investment">Investment</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="account">Account</label>
+          <input type="text" id="account" list="accountList" placeholder="e.g. Novo Banco">
+          <datalist id="accountList"></datalist>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="submitBtn">Add Expense</button>
+          <button type="button" class="btn btn-ghost hidden" id="cancelEditBtn">Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel dashboard-panel">
+      <h2>Dashboard</h2>
+      <div class="stat-cards">
+        <div class="stat-card">
+          <span class="stat-label">Total Spending</span>
+          <span class="stat-value" id="statTotalSpending">€0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Total Income</span>
+          <span class="stat-value" id="statTotalIncome">€0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Savings</span>
+          <span class="stat-value" id="statSavings">€0.00</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Invested</span>
+          <span class="stat-value" id="statInvested">€0.00</span>
+        </div>
+      </div>
+      <div class="charts">
+        <div class="chart-box">
+          <h3>Spending by Category</h3>
+          <canvas id="categoryChart"></canvas>
+          <p class="empty-note hidden" id="categoryEmpty">No expense data in this range.</p>
+        </div>
+        <div class="chart-box">
+          <h3>Spending Over Time</h3>
+          <canvas id="timeChart"></canvas>
+          <p class="empty-note hidden" id="timeEmpty">No expense data in this range.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="table-header">
+        <h2>All Transactions</h2>
+        <input type="text" id="searchInput" placeholder="Search note or category...">
+      </div>
+      <div class="table-wrap">
+        <table id="expenseTable">
+          <thead>
+            <tr>
+              <th data-sort="date">Date</th>
+              <th data-sort="amount">Amount</th>
+              <th data-sort="category">Category</th>
+              <th data-sort="type">Type</th>
+              <th data-sort="account">Account</th>
+              <th>Note</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expenseTableBody"></tbody>
+        </table>
+        <p class="empty-note hidden" id="tableEmpty">No transactions yet. Add one above, or import your Excel file.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="importModal" class="modal hidden">
+  <div class="modal-content">
+    <h2>Import from Excel</h2>
+    <div id="importStep1">
+      <p>Select the sheet that contains your transactions:</p>
+      <select id="importSheetSelect"></select>
+      <p class="modal-preview" id="importPreview"></p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="importCancelBtn">Cancel</button>
+      <button class="btn btn-primary" id="importConfirmBtn">Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden">
+  <span id="toastMessage"></span>
+  <button id="toastAction" class="toast-action hidden"></button>
+</div>
+
+<script src="lib/chart.umd.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
