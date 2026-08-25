@@ -19,30 +19,34 @@
 
   <header class="topbar">
     <h1>Expense Tracker</h1>
-    <div class="topbar-actions">
-      <label class="range-label">
-        Range:
-        <select id="rangeSelect">
-          <option value="all">All time</option>
-          <option value="year">This year</option>
-          <option value="month" selected>This month</option>
-          <option value="custom">Custom</option>
-        </select>
-      </label>
-      <div id="customRange" class="custom-range hidden">
-        <input type="date" id="customFrom">
-        <span>to</span>
-        <input type="date" id="customTo">
-      </div>
-      <button id="importBtn" class="btn btn-secondary">Import Excel</button>
-      <button id="exportBtn" class="btn btn-secondary">Export JSON</button>
-      <label class="btn btn-secondary file-label">
-        Restore JSON
-        <input type="file" id="restoreInput" accept="application/json" hidden>
-      </label>
-      <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
-    </div>
   </header>
+
+  <div class="toolbar">
+    <button id="importBtn" class="btn btn-tool btn-tool-primary">Import Excel</button>
+    <button id="exportBtn" class="btn btn-tool btn-tool-invest">Export JSON</button>
+    <label class="btn btn-tool btn-tool-purple file-label">
+      Restore JSON
+      <input type="file" id="restoreInput" accept="application/json" hidden>
+    </label>
+    <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
+  </div>
+
+  <div class="range-bar">
+    <label class="range-label">
+      Range:
+      <select id="rangeSelect">
+        <option value="all">All time</option>
+        <option value="year">This year</option>
+        <option value="month" selected>This month</option>
+        <option value="custom">Custom</option>
+      </select>
+    </label>
+    <div id="customRange" class="custom-range hidden">
+      <input type="date" id="customFrom">
+      <span>to</span>
+      <input type="date" id="customTo">
+    </div>
+  </div>
 
   <main class="layout">
 
