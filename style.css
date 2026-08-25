@@ -31,9 +31,38 @@ body {
   .app { padding: 14px; }
 }
 
-.topbar { margin-bottom: 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 
 .topbar h1 { font-size: 22px; margin: 0; }
+
+.auth-panel { max-width: 360px; margin: 40px auto; }
+.auth-panel h2 { margin: 0 0 16px; font-size: 18px; }
+.auth-panel .form-actions { margin-top: 4px; }
+.auth-error {
+  background: #f5e1eb;
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+.auth-toggle { text-align: center; font-size: 13px; color: var(--text-muted); margin-top: 16px; }
+.auth-toggle .btn { margin-left: 4px; }
+
+.closed-banner {
+  display: none;
+  background: #f5e1eb;
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin: 0 0 14px;
+}
+
+body.track-closed #closedTrackBanner { display: block; }
+body.track-closed #expenseForm { display: none; }
+body.track-closed .row-actions .btn-icon,
+body.track-closed .row-actions .btn-danger { display: none; }
 
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 

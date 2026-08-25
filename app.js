@@ -1,7 +1,10 @@
 (() => {
   "use strict";
 
-  const STORAGE_KEY = "expenseTrackerData_v1";
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const LEGACY_STORAGE_KEY = "expenseTrackerData_v1";
+  const LAST_TRACK_KEY = "expenseTrackerLastTrack_v1";
 
   const PRESET_CATEGORIES = [
     "Acessórios", "Apostas", "Cabeleireiro", "Comida", "Gasolina", "Geral",
@@ -12,31 +15,11 @@
   ];
   const PRESET_ACCOUNTS = ["Novo Banco", "Revolut", "Trading 212"];
 
-  // ---------- storage ----------
-
-  function loadData() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error("Failed to load stored data", e);
-      return [];
-    }
-  }
-
-  function saveData() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
-  }
-
-  function uuid() {
-    if (crypto.randomUUID) return crypto.randomUUID();
-    return "id-" + Date.now() + "-" + Math.random().toString(16).slice(2);
-  }
-
   const state = {
-    data: loadData(),
+    session: null,
+    tracks: [],
+    currentTrackId: null,
+    data: [],
     editId: null,
     sort: { key: "date", dir: "desc" },
     search: "",
@@ -91,6 +74,10 @@
     return "expense";
   }
 
+  function slugify(s) {
+    return (s || "export").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "export";
+  }
+
   // Excel serial date (or JS Date from SheetJS cellDates) -> "YYYY-MM-DD"
   function excelValueToISO(val) {
     if (val instanceof Date) {
@@ -110,6 +97,24 @@
     return null;
   }
 
+  function escapeHtml(s) {
+    return (s || "").toString().replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
+
+  function fromDbRow(row) {
+    return {
+      id: row.id,
+      amount: Number(row.amount),
+      category: row.category,
+      date: row.date,
+      note: row.note || "",
+      type: row.type,
+      account: row.account || "",
+    };
+  }
+
   // ---------- categories / accounts datalists ----------
 
   function refreshDatalists() {
@@ -125,10 +130,252 @@
     accList.innerHTML = [...accs].sort().map((a) => `<option value="${escapeHtml(a)}">`).join("");
   }
 
-  function escapeHtml(s) {
-    return (s || "").toString().replace(/[&<>"']/g, (c) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[c]));
+  // ---------- auth ----------
+
+  const authScreen = document.getElementById("authScreen");
+  const appContent = document.getElementById("appContent");
+  const authForm = document.getElementById("authForm");
+  const authEmail = document.getElementById("authEmail");
+  const authPassword = document.getElementById("authPassword");
+  const authError = document.getElementById("authError");
+  const authSubmitBtn = document.getElementById("authSubmitBtn");
+  const authToggleBtn = document.getElementById("authToggleBtn");
+  const authToggleText = document.getElementById("authToggleText");
+  const authTitle = document.getElementById("authTitle");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  let authMode = "signin";
+
+  function updateAuthUI() {
+    if (authMode === "signin") {
+      authTitle.textContent = "Sign In";
+      authSubmitBtn.textContent = "Sign In";
+      authToggleText.textContent = "Don't have an account?";
+      authToggleBtn.textContent = "Sign Up";
+    } else {
+      authTitle.textContent = "Sign Up";
+      authSubmitBtn.textContent = "Sign Up";
+      authToggleText.textContent = "Already have an account?";
+      authToggleBtn.textContent = "Sign In";
+    }
+    authError.classList.add("hidden");
+  }
+
+  authToggleBtn.addEventListener("click", () => {
+    authMode = authMode === "signin" ? "signup" : "signin";
+    updateAuthUI();
+  });
+
+  authForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    authError.classList.add("hidden");
+    authSubmitBtn.disabled = true;
+    const email = authEmail.value.trim();
+    const password = authPassword.value;
+    try {
+      const { error } = authMode === "signin"
+        ? await sb.auth.signInWithPassword({ email, password })
+        : await sb.auth.signUp({ email, password });
+      if (error) throw error;
+    } catch (err) {
+      authError.textContent = err.message || "Something went wrong.";
+      authError.classList.remove("hidden");
+    } finally {
+      authSubmitBtn.disabled = false;
+    }
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+  });
+
+  let initialized = false;
+
+  sb.auth.onAuthStateChange((_event, session) => {
+    state.session = session;
+    if (session) {
+      authScreen.classList.add("hidden");
+      appContent.classList.remove("hidden");
+      logoutBtn.classList.remove("hidden");
+      initAfterLogin();
+    } else {
+      initialized = false;
+      authScreen.classList.remove("hidden");
+      appContent.classList.add("hidden");
+      logoutBtn.classList.add("hidden");
+      authForm.reset();
+    }
+  });
+
+  async function initAfterLogin() {
+    if (initialized) return;
+    initialized = true;
+    try {
+      state.tracks = await loadTracks();
+      const generalTrack = state.tracks.find((t) => t.is_general);
+      const lastId = localStorage.getItem(LAST_TRACK_KEY);
+      state.currentTrackId = (lastId && state.tracks.some((t) => t.id === lastId)) ? lastId : generalTrack.id;
+      await maybeMigrateLegacyData(generalTrack.id);
+      await refreshCurrentTrackData();
+      renderTrackSelect();
+      renderAll();
+    } catch (err) {
+      toast("Could not load your data: " + err.message);
+    }
+  }
+
+  // ---------- tracks ----------
+
+  async function loadTracks() {
+    const { data, error } = await sb.from("tracks").select("*").order("is_general", { ascending: false }).order("name");
+    if (error) throw error;
+    let tracks = data || [];
+    if (!tracks.some((t) => t.is_general)) {
+      const { data: created, error: createErr } = await sb.from("tracks")
+        .insert({ name: "General", is_general: true, status: "open", user_id: state.session.user.id })
+        .select().single();
+      if (createErr) throw createErr;
+      tracks = [created, ...tracks];
+    }
+    return tracks;
+  }
+
+  async function refreshCurrentTrackData() {
+    const requestedTrackId = state.currentTrackId;
+    const { data, error } = await sb.from("expenses").select("*").eq("track_id", requestedTrackId).order("date", { ascending: false });
+    if (error) throw error;
+    // Ignore stale responses: if the user switched tracks again while this
+    // request was in flight, a slower earlier response must not clobber data
+    // that already belongs to the now-current track.
+    if (state.currentTrackId !== requestedTrackId) return;
+    state.data = (data || []).map(fromDbRow);
+  }
+
+  function currentTrack() {
+    return state.tracks.find((t) => t.id === state.currentTrackId);
+  }
+
+  function isCurrentTrackClosed() {
+    const t = currentTrack();
+    return !!t && t.status === "closed";
+  }
+
+  const trackSelect = document.getElementById("trackSelect");
+  const closeTrackBtn = document.getElementById("closeTrackBtn");
+  const reopenTrackBtn = document.getElementById("reopenTrackBtn");
+
+  function renderTrackSelect() {
+    trackSelect.innerHTML = state.tracks
+      .map((t) => `<option value="${t.id}">${escapeHtml(t.name)}${t.status === "closed" ? " (closed)" : ""}</option>`)
+      .join("") + `<option value="__new__">+ New Track…</option>`;
+    trackSelect.value = state.currentTrackId;
+    updateTrackControls();
+  }
+
+  function updateTrackControls() {
+    const track = currentTrack();
+    const isClosed = !!track && track.status === "closed";
+    closeTrackBtn.classList.toggle("hidden", !track || track.is_general || isClosed);
+    reopenTrackBtn.classList.toggle("hidden", !track || track.is_general || !isClosed);
+    document.body.classList.toggle("track-closed", isClosed);
+  }
+
+  trackSelect.addEventListener("change", async () => {
+    if (trackSelect.value === "__new__") {
+      const name = (prompt('Name this track (e.g. "Paris Expenses"):') || "").trim();
+      trackSelect.value = state.currentTrackId;
+      if (!name) return;
+      try {
+        const { data, error } = await sb.from("tracks")
+          .insert({ name, is_general: false, status: "open", user_id: state.session.user.id })
+          .select().single();
+        if (error) throw error;
+        state.tracks.push(data);
+        await switchTrack(data.id);
+        renderTrackSelect();
+        toast(`Track "${name}" created.`);
+      } catch (err) {
+        toast("Could not create track: " + err.message);
+      }
+      return;
+    }
+    await switchTrack(trackSelect.value);
+  });
+
+  async function switchTrack(id) {
+    if (state.editId) exitEditMode();
+    state.currentTrackId = id;
+    localStorage.setItem(LAST_TRACK_KEY, id);
+    try {
+      await refreshCurrentTrackData();
+    } catch (err) {
+      toast("Could not load track data: " + err.message);
+    }
+    updateTrackControls();
+    renderAll();
+  }
+
+  closeTrackBtn.addEventListener("click", async () => {
+    const track = currentTrack();
+    if (!track || track.is_general) return;
+    if (!confirm(`Close "${track.name}"? Its net total will be added to General.`)) return;
+    try {
+      const { data, error } = await sb.rpc("close_track", { p_track_id: track.id });
+      if (error) throw error;
+      Object.assign(track, data);
+      renderTrackSelect();
+      toast(`"${track.name}" closed.`);
+    } catch (err) {
+      toast("Could not close track: " + err.message);
+    }
+  });
+
+  reopenTrackBtn.addEventListener("click", async () => {
+    const track = currentTrack();
+    if (!track || track.is_general) return;
+    try {
+      const { data, error } = await sb.rpc("reopen_track", { p_track_id: track.id });
+      if (error) throw error;
+      Object.assign(track, data);
+      renderTrackSelect();
+      toast(`"${track.name}" reopened.`);
+    } catch (err) {
+      toast("Could not reopen track: " + err.message);
+    }
+  });
+
+  // ---------- legacy localStorage migration ----------
+
+  async function maybeMigrateLegacyData(generalTrackId) {
+    const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!raw) return;
+    let legacy;
+    try {
+      legacy = JSON.parse(raw);
+    } catch {
+      return;
+    }
+    if (!Array.isArray(legacy) || legacy.length === 0) return;
+
+    const { count, error: countErr } = await sb.from("expenses").select("id", { count: "exact", head: true }).eq("track_id", generalTrackId);
+    if (countErr || (count && count > 0)) return;
+
+    if (!confirm(`Found ${legacy.length} transaction(s) saved locally in this browser. Import them into your account's General track now?`)) {
+      return;
+    }
+    try {
+      const rows = legacy.map((e) => ({
+        amount: e.amount, category: e.category, date: e.date,
+        note: e.note || "", type: e.type || "expense", account: e.account || "",
+      }));
+      const { data: importedCount, error } = await sb.rpc("import_legacy_data", { p_rows: rows });
+      if (error) throw error;
+      localStorage.setItem(LEGACY_STORAGE_KEY + "_imported_" + todayISO(), raw);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
+      toast(`Imported ${importedCount} transaction(s) from this browser's local data.`);
+    } catch (err) {
+      toast("Could not import local data: " + err.message);
+    }
   }
 
   // ---------- form: add / edit ----------
@@ -140,8 +387,12 @@
 
   document.getElementById("date").value = todayISO();
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isCurrentTrackClosed()) {
+      toast("This track is closed. Reopen it to make changes.");
+      return;
+    }
     const amount = parseFloat(document.getElementById("amount").value);
     const category = document.getElementById("category").value.trim();
     const date = document.getElementById("date").value;
@@ -154,23 +405,32 @@
       return;
     }
 
-    if (state.editId) {
-      const rec = state.data.find((e) => e.id === state.editId);
-      if (rec) {
-        Object.assign(rec, { amount, category, date, note, type, account, updatedAt: Date.now() });
+    submitBtn.disabled = true;
+    try {
+      if (state.editId) {
+        const { data, error } = await sb.from("expenses")
+          .update({ amount, category, date, note, type, account })
+          .eq("id", state.editId)
+          .select().single();
+        if (error) throw error;
+        const idx = state.data.findIndex((e) => e.id === state.editId);
+        if (idx !== -1) state.data[idx] = fromDbRow(data);
         toast("Expense updated.");
+      } else {
+        const { data, error } = await sb.from("expenses")
+          .insert({ amount, category, date, note, type, account, track_id: state.currentTrackId, user_id: state.session.user.id })
+          .select().single();
+        if (error) throw error;
+        state.data.push(fromDbRow(data));
+        toast("Expense added.");
       }
-    } else {
-      state.data.push({
-        id: uuid(), amount, category, date, note, type, account,
-        createdAt: Date.now(), updatedAt: Date.now(),
-      });
-      toast("Expense added.");
+      exitEditMode();
+      renderAll();
+    } catch (err) {
+      toast("Could not save: " + err.message);
+    } finally {
+      submitBtn.disabled = false;
     }
-
-    saveData();
-    exitEditMode();
-    renderAll();
   });
 
   cancelEditBtn.addEventListener("click", () => exitEditMode());
@@ -201,17 +461,23 @@
   }
 
   function deleteExpense(id) {
+    if (isCurrentTrackClosed()) {
+      toast("This track is closed. Reopen it to make changes.");
+      return;
+    }
     const index = state.data.findIndex((e) => e.id === id);
     if (index === -1) return;
 
     const [record] = state.data.splice(index, 1);
     if (state.editId === id) exitEditMode();
-    saveData();
     renderAll();
 
     const pending = { record, index };
-    pending.timer = setTimeout(() => {
-      if (state.pendingDelete === pending) state.pendingDelete = null;
+    pending.timer = setTimeout(async () => {
+      if (state.pendingDelete !== pending) return;
+      state.pendingDelete = null;
+      const { error } = await sb.from("expenses").delete().eq("id", id);
+      if (error) toast("Could not delete on server: " + error.message);
     }, 10000);
     state.pendingDelete = pending;
 
@@ -223,7 +489,6 @@
         clearTimeout(pending.timer);
         state.data.splice(Math.min(pending.index, state.data.length), 0, pending.record);
         state.pendingDelete = null;
-        saveData();
         renderAll();
         toast("Expense restored.");
       },
@@ -472,11 +737,12 @@
   // ---------- export / restore JSON ----------
 
   document.getElementById("exportBtn").addEventListener("click", () => {
+    const trackName = currentTrack()?.name || "export";
     const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `expense-tracker-backup-${todayISO()}.json`;
+    a.download = `expense-tracker-${slugify(trackName)}-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -488,6 +754,7 @@
       toast("No transactions to export.");
       return;
     }
+    const trackName = currentTrack()?.name || "export";
     const rows = state.data
       .slice()
       .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
@@ -502,24 +769,43 @@
     const ws = XLSX.utils.json_to_sheet(rows, { cellDates: true });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Finanças");
-    XLSX.writeFile(wb, `expense-tracker-${todayISO()}.xlsx`, { cellDates: true });
+    XLSX.writeFile(wb, `expense-tracker-${slugify(trackName)}-${todayISO()}.xlsx`, { cellDates: true });
   });
 
   document.getElementById("restoreInput").addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       try {
         const parsed = JSON.parse(reader.result);
         if (!Array.isArray(parsed)) throw new Error("Invalid backup file");
-        if (!confirm(`Restore ${parsed.length} transactions from this backup? This will REPLACE all current data (${state.data.length} transactions).`)) return;
-        state.data = parsed;
-        saveData();
+        const trackName = currentTrack()?.name || "this track";
+        if (!confirm(`Restore ${parsed.length} transaction(s) from this backup? This will REPLACE all entries in the "${trackName}" track (${state.data.length} transactions).`)) return;
+        if (isCurrentTrackClosed()) {
+          toast("This track is closed. Reopen it to make changes.");
+          return;
+        }
+
+        const { error: delError } = await sb.from("expenses").delete().eq("track_id", state.currentTrackId);
+        if (delError) throw delError;
+
+        if (parsed.length > 0) {
+          const rows = parsed.map((r) => ({
+            amount: r.amount, category: r.category, date: r.date, note: r.note || "",
+            type: r.type || "expense", account: r.account || "",
+            track_id: state.currentTrackId, user_id: state.session.user.id,
+          }));
+          const { data, error: insError } = await sb.from("expenses").insert(rows).select();
+          if (insError) throw insError;
+          state.data = data.map(fromDbRow);
+        } else {
+          state.data = [];
+        }
         renderAll();
         toast("Backup restored.");
       } catch (err) {
-        toast("Could not read backup file: " + err.message);
+        toast("Could not restore backup: " + err.message);
       }
     };
     reader.readAsText(file);
@@ -625,24 +911,55 @@
     return [e.date, e.amount.toFixed(2), normalize(e.category), normalize(e.note), e.type].join("|");
   }
 
-  importConfirmBtn.addEventListener("click", () => {
+  importConfirmBtn.addEventListener("click", async () => {
+    if (isCurrentTrackClosed()) {
+      toast("This track is closed. Reopen it to make changes.");
+      importModal.classList.add("hidden");
+      return;
+    }
     const existingKeys = new Set(state.data.map(rowKey));
-    let added = 0, skipped = 0;
+    const toInsert = [];
+    let skipped = 0;
     for (const row of importPendingRows) {
       const key = rowKey(row);
       if (existingKeys.has(key)) { skipped++; continue; }
       existingKeys.add(key);
-      state.data.push({ id: uuid(), ...row, createdAt: Date.now(), updatedAt: Date.now() });
-      added++;
+      toInsert.push({ ...row, track_id: state.currentTrackId, user_id: state.session.user.id });
     }
-    saveData();
-    renderAll();
     importModal.classList.add("hidden");
-    toast(`Imported ${added} transaction(s).` + (skipped > 0 ? ` Skipped ${skipped} duplicate(s).` : ""));
+    if (toInsert.length === 0) {
+      toast(`No new transactions to import.` + (skipped > 0 ? ` Skipped ${skipped} duplicate(s).` : ""));
+      return;
+    }
+    try {
+      const { data, error } = await sb.from("expenses").insert(toInsert).select();
+      if (error) throw error;
+      state.data.push(...data.map(fromDbRow));
+      renderAll();
+      toast(`Imported ${data.length} transaction(s).` + (skipped > 0 ? ` Skipped ${skipped} duplicate(s).` : ""));
+    } catch (err) {
+      toast("Import failed: " + err.message);
+    }
   });
 
   document.getElementById("importCancelBtn").addEventListener("click", () => {
     importModal.classList.add("hidden");
+  });
+
+  // ---------- background refresh ----------
+
+  async function refreshOnFocus() {
+    if (!state.session || !state.currentTrackId || state.editId) return;
+    try {
+      await refreshCurrentTrackData();
+      renderAll();
+    } catch (err) {
+      console.error("Background refresh failed", err);
+    }
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) refreshOnFocus();
   });
 
   // ---------- init ----------
@@ -652,8 +969,6 @@
     renderDashboard();
     renderTable();
   }
-
-  renderAll();
 
   if ("serviceWorker" in navigator && location.protocol !== "file:") {
     window.addEventListener("load", () => {

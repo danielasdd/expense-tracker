@@ -19,7 +19,32 @@
 
   <header class="topbar">
     <h1>Expense Tracker</h1>
+    <button id="logoutBtn" class="btn btn-ghost hidden">Log Out</button>
   </header>
+
+  <section id="authScreen" class="panel auth-panel hidden">
+    <h2 id="authTitle">Sign In</h2>
+    <form id="authForm">
+      <div class="field-row">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" required autocomplete="username">
+      </div>
+      <div class="field-row">
+        <label for="authPassword">Password</label>
+        <input type="password" id="authPassword" required autocomplete="current-password" minlength="6">
+      </div>
+      <p class="auth-error hidden" id="authError"></p>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="authSubmitBtn">Sign In</button>
+      </div>
+    </form>
+    <p class="auth-toggle">
+      <span id="authToggleText">Don't have an account?</span>
+      <button type="button" class="btn btn-ghost" id="authToggleBtn">Sign Up</button>
+    </p>
+  </section>
+
+  <div id="appContent" class="hidden">
 
   <div class="toolbar">
     <button id="importBtn" class="btn btn-tool btn-tool-primary">Import Excel</button>
@@ -47,12 +72,20 @@
       <span>to</span>
       <input type="date" id="customTo">
     </div>
+
+    <label class="range-label">
+      Track:
+      <select id="trackSelect"></select>
+    </label>
+    <button id="closeTrackBtn" class="btn btn-tool btn-tool-rose hidden">Close Track</button>
+    <button id="reopenTrackBtn" class="btn btn-tool btn-tool-invest hidden">Reopen Track</button>
   </div>
 
   <main class="layout">
 
     <section class="panel form-panel">
       <h2 id="formTitle">Add Expense</h2>
+      <p id="closedTrackBanner" class="closed-banner">This track is closed. Reopen it to make changes.</p>
       <form id="expenseForm">
         <input type="hidden" id="expenseId">
 
@@ -158,6 +191,7 @@
     </section>
 
   </main>
+  </div><!-- #appContent -->
 </div>
 
 <div id="importModal" class="modal hidden">
@@ -182,6 +216,8 @@
 
 <script src="lib/chart.umd.min.js"></script>
 <script src="lib/xlsx.full.min.js"></script>
+<script src="lib/supabase.min.js"></script>
+<script src="config.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
