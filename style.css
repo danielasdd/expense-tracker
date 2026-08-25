@@ -22,9 +22,14 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
+
+@media (max-width: 600px) {
+  .app { padding: 14px; }
+}
 
 .topbar {
   display: flex;
@@ -39,10 +44,23 @@ body {
 
 .topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
+@media (max-width: 600px) {
+  .topbar-actions { width: 100%; gap: 8px; }
+  .topbar-actions .btn,
+  .topbar-actions .file-label,
+  .topbar-actions .range-label { flex: 1 1 auto; justify-content: center; }
+  .range-label select { flex: 1; }
+}
+
 .range-label { font-size: 14px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
 
-.custom-range { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.custom-range { display: flex; align-items: center; gap: 6px; font-size: 14px; flex-wrap: wrap; }
 .custom-range.hidden { display: none; }
+
+@media (max-width: 600px) {
+  .custom-range { width: 100%; }
+  .custom-range input[type="date"] { flex: 1 1 120px; }
+}
 
 select, input[type="text"], input[type="number"], input[type="date"] {
   font-family: inherit;
@@ -63,6 +81,14 @@ select, input[type="text"], input[type="number"], input[type="date"] {
   border: 1px solid transparent;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+@media (max-width: 600px) {
+  /* iOS Safari zooms the page in on focus of any input under 16px, and cramped
+     buttons are hard to tap accurately — both fixed with more generous sizing. */
+  select, input[type="text"], input[type="number"], input[type="date"] { font-size: 16px; }
+  .btn { min-height: 40px; padding: 9px 14px; }
+  .btn-danger, .btn-icon { min-height: 34px; }
 }
 
 .btn-primary { background: var(--primary); color: white; }
@@ -159,6 +185,10 @@ select, input[type="text"], input[type="number"], input[type="date"] {
 .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
 .table-header input { min-width: 240px; }
 
+@media (max-width: 600px) {
+  .table-header input { min-width: 0; width: 100%; }
+}
+
 .table-wrap { overflow-x: auto; }
 
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -198,6 +228,45 @@ tbody tr:hover { background: #f9f8fe; }
 .type-badge.investment { background: #e9f0f4; color: var(--invest); }
 
 .row-actions { display: flex; gap: 6px; }
+
+@media (max-width: 600px) {
+  /* Collapse the transactions table into a stacked card list — a horizontally
+     scrolling table is hard to read and use one-handed on a phone. */
+  table, thead, tbody, tr, td { display: block; width: 100%; }
+  thead { position: absolute; left: -9999px; }
+
+  tbody tr {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+  }
+
+  tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f2f1f7;
+    text-align: right;
+  }
+  tbody td:last-child { border-bottom: none; }
+
+  tbody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  tbody td.row-actions { justify-content: flex-end; }
+  tbody td.row-actions::before { content: none; }
+}
 
 .modal {
   position: fixed;

@@ -340,7 +340,7 @@
       options: {
         responsive: true,
         plugins: {
-          legend: { position: "right", labels: { boxWidth: 12, font: { size: 11 } } },
+          legend: { position: window.innerWidth < 600 ? "bottom" : "right", labels: { boxWidth: 12, font: { size: 11 } } },
           tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${fmtMoney(ctx.parsed)}` } },
         },
       },
@@ -445,12 +445,12 @@
 
     tbody.innerHTML = rows.map((e) => `
       <tr>
-        <td>${e.date}</td>
-        <td class="amount-${e.type}">${fmtMoney(e.amount)}</td>
-        <td>${escapeHtml(e.category)}</td>
-        <td><span class="type-badge ${e.type}">${e.type}</span></td>
-        <td>${escapeHtml(e.account || "")}</td>
-        <td>${escapeHtml(e.note || "")}</td>
+        <td data-label="Date">${e.date}</td>
+        <td class="amount-${e.type}" data-label="Amount">${fmtMoney(e.amount)}</td>
+        <td data-label="Category">${escapeHtml(e.category)}</td>
+        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span></td>
+        <td data-label="Account">${escapeHtml(e.account || "")}</td>
+        <td data-label="Note">${escapeHtml(e.note || "")}</td>
         <td class="row-actions">
           <button class="btn btn-icon" data-edit="${e.id}">Edit</button>
           <button class="btn btn-danger" data-delete="${e.id}">Delete</button>
