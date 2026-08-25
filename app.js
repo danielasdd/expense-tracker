@@ -23,6 +23,7 @@
     editId: null,
     sort: { key: "date", dir: "desc" },
     search: "",
+    categoryFilterValue: "",
     pendingDelete: null,
   };
 
@@ -124,10 +125,25 @@
       if (e.category) cats.add(e.category);
       if (e.account) accs.add(e.account);
     });
-    const catList = document.getElementById("categoryList");
-    catList.innerHTML = [...cats].sort().map((c) => `<option value="${escapeHtml(c)}">`).join("");
+    const sortedCats = [...cats].sort();
+
+    const categorySelectEl = document.getElementById("category");
+    const currentCategoryValue = categorySelectEl.value;
+    categorySelectEl.innerHTML =
+      `<option value="" disabled${currentCategoryValue ? "" : " selected"}>Select a category</option>` +
+      sortedCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("") +
+      `<option value="__new__">+ Add new category…</option>`;
+    if (sortedCats.includes(currentCategoryValue)) categorySelectEl.value = currentCategoryValue;
+
     const accList = document.getElementById("accountList");
     accList.innerHTML = [...accs].sort().map((a) => `<option value="${escapeHtml(a)}">`).join("");
+
+    const categoryFilterEl = document.getElementById("categoryFilter");
+    const currentFilterValue = categoryFilterEl.value;
+    categoryFilterEl.innerHTML =
+      `<option value="">All Categories</option>` +
+      sortedCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+    categoryFilterEl.value = sortedCats.includes(currentFilterValue) ? currentFilterValue : "";
   }
 
   // ---------- auth ----------
@@ -387,6 +403,25 @@
 
   document.getElementById("date").value = todayISO();
 
+  const categorySelect = document.getElementById("category");
+  let lastCategoryValue = "";
+
+  categorySelect.addEventListener("change", () => {
+    if (categorySelect.value === "__new__") {
+      const name = (prompt("New category name:") || "").trim();
+      if (!name) {
+        categorySelect.value = lastCategoryValue;
+        return;
+      }
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      categorySelect.insertBefore(opt, categorySelect.querySelector('option[value="__new__"]'));
+      categorySelect.value = name;
+    }
+    lastCategoryValue = categorySelect.value;
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (isCurrentTrackClosed()) {
@@ -440,6 +475,7 @@
     document.getElementById("expenseId").value = rec.id;
     document.getElementById("amount").value = rec.amount;
     document.getElementById("category").value = rec.category;
+    lastCategoryValue = rec.category;
     document.getElementById("date").value = rec.date;
     document.getElementById("note").value = rec.note || "";
     document.getElementById("type").value = rec.type || "expense";
@@ -455,6 +491,7 @@
     form.reset();
     document.getElementById("date").value = todayISO();
     document.getElementById("type").value = "expense";
+    lastCategoryValue = "";
     formTitle.textContent = "Add Expense";
     submitBtn.textContent = "Add Expense";
     cancelEditBtn.classList.add("hidden");
@@ -675,6 +712,12 @@
     renderTable();
   });
 
+  const categoryFilter = document.getElementById("categoryFilter");
+  categoryFilter.addEventListener("change", () => {
+    state.categoryFilterValue = categoryFilter.value;
+    renderTable();
+  });
+
   document.querySelectorAll("#expenseTable thead th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
@@ -689,7 +732,10 @@
 
   function renderTable() {
     const q = normalize(state.search);
-    let rows = state.data.filter((e) => !q || normalize(e.note).includes(q) || normalize(e.category).includes(q));
+    let rows = state.data.filter((e) =>
+      (!q || normalize(e.note).includes(q) || normalize(e.category).includes(q)) &&
+      (!state.categoryFilterValue || e.category === state.categoryFilterValue)
+    );
 
     const { key, dir } = state.sort;
     rows = rows.slice().sort((a, b) => {
