@@ -161,6 +161,9 @@ select, input[type="text"], input[type="number"], input[type="date"] {
 .btn-tool-purple { background: #e8e1e8; color: #663466; border-color: #d1c2d1; }
 .btn-tool-purple:hover { background: #d1c2d1; }
 
+.btn-tool-danger { background: #f5e1eb; color: var(--danger); border-color: #ebc4d7; }
+.btn-tool-danger:hover { background: #ebc4d7; }
+
 .file-label { display: inline-flex; align-items: center; }
 
 .layout {

@@ -79,6 +79,7 @@
     </label>
     <button id="closeTrackBtn" class="btn btn-tool btn-tool-rose hidden">Close Track</button>
     <button id="reopenTrackBtn" class="btn btn-tool btn-tool-invest hidden">Reopen Track</button>
+    <button id="deleteTrackBtn" class="btn btn-tool btn-tool-danger hidden">Delete Track</button>
   </div>
 
   <main class="layout">
@@ -122,8 +123,9 @@
 
         <div class="field-row">
           <label for="account">Account</label>
-          <input type="text" id="account" list="accountList" placeholder="e.g. Novo Banco">
-          <datalist id="accountList"></datalist>
+          <select id="account">
+            <option value="" disabled selected>Select an account</option>
+          </select>
         </div>
 
         <div class="form-actions">

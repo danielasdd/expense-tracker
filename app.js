@@ -13,7 +13,7 @@
     "Shein", "Subscrições", "Supermercado", "Tecnologia", "Transportes",
     "Unhas", "Viagens"
   ];
-  const PRESET_ACCOUNTS = ["Novo Banco", "Revolut", "Trading 212"];
+  const PRESET_ACCOUNTS = ["Novo Banco", "Trading 212", "Revolut", "General"];
 
   const state = {
     session: null,
@@ -27,6 +27,7 @@
     typeFilterValue: "",
     accountFilterValue: "",
     pendingDelete: null,
+    pendingTrackDelete: null,
   };
 
   // ---------- helpers ----------
@@ -137,8 +138,14 @@
       `<option value="__new__">+ Add new category…</option>`;
     if (sortedCats.includes(currentCategoryValue)) categorySelectEl.value = currentCategoryValue;
 
-    const accList = document.getElementById("accountList");
-    accList.innerHTML = [...accs].sort().map((a) => `<option value="${escapeHtml(a)}">`).join("");
+    const sortedAccs = [...accs].sort();
+    const accountSelectEl = document.getElementById("account");
+    const currentAccountValue = accountSelectEl.value;
+    accountSelectEl.innerHTML =
+      `<option value="" disabled${currentAccountValue ? "" : " selected"}>Select an account</option>` +
+      sortedAccs.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("") +
+      `<option value="__new__">+ Add new account…</option>`;
+    if (sortedAccs.includes(currentAccountValue)) accountSelectEl.value = currentAccountValue;
 
     const categoryFilterEl = document.getElementById("categoryFilter");
     const currentFilterValue = categoryFilterEl.value;
@@ -147,7 +154,6 @@
       sortedCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     categoryFilterEl.value = sortedCats.includes(currentFilterValue) ? currentFilterValue : "";
 
-    const sortedAccs = [...accs].sort();
     const accountFilterEl = document.getElementById("accountFilter");
     const currentAccountFilterValue = accountFilterEl.value;
     accountFilterEl.innerHTML =
@@ -289,6 +295,7 @@
   const trackSelect = document.getElementById("trackSelect");
   const closeTrackBtn = document.getElementById("closeTrackBtn");
   const reopenTrackBtn = document.getElementById("reopenTrackBtn");
+  const deleteTrackBtn = document.getElementById("deleteTrackBtn");
 
   function renderTrackSelect() {
     trackSelect.innerHTML = state.tracks
@@ -303,6 +310,7 @@
     const isClosed = !!track && track.status === "closed";
     closeTrackBtn.classList.toggle("hidden", !track || track.is_general || isClosed);
     reopenTrackBtn.classList.toggle("hidden", !track || track.is_general || !isClosed);
+    deleteTrackBtn.classList.toggle("hidden", !track || track.is_general);
     document.body.classList.toggle("track-closed", isClosed);
   }
 
@@ -370,6 +378,49 @@
     }
   });
 
+  deleteTrackBtn.addEventListener("click", () => {
+    const track = currentTrack();
+    if (!track || track.is_general) return;
+    if (!confirm(`Delete "${track.name}" for good? This removes the track and all its transactions. You'll have 10 seconds to undo.`)) return;
+
+    const generalTrack = state.tracks.find((t) => t.is_general);
+    const trackIndex = state.tracks.findIndex((t) => t.id === track.id);
+    const cachedData = state.data;
+
+    if (state.editId) exitEditMode();
+    state.tracks.splice(trackIndex, 1);
+    state.currentTrackId = generalTrack.id;
+    localStorage.setItem(LAST_TRACK_KEY, generalTrack.id);
+    renderTrackSelect();
+    refreshCurrentTrackData().then(renderAll).catch((err) => toast("Could not load track data: " + err.message));
+
+    const pending = { track, trackIndex, data: cachedData };
+    pending.timer = setTimeout(async () => {
+      if (state.pendingTrackDelete !== pending) return;
+      state.pendingTrackDelete = null;
+      const { error } = await sb.from("tracks").delete().eq("id", track.id);
+      if (error) toast("Could not delete track on server: " + error.message);
+    }, 10000);
+    state.pendingTrackDelete = pending;
+
+    toast(`"${track.name}" deleted.`, {
+      duration: 10000,
+      actionLabel: "Undo",
+      onAction: () => {
+        if (state.pendingTrackDelete !== pending) return;
+        clearTimeout(pending.timer);
+        state.pendingTrackDelete = null;
+        state.tracks.splice(Math.min(pending.trackIndex, state.tracks.length), 0, pending.track);
+        state.currentTrackId = pending.track.id;
+        localStorage.setItem(LAST_TRACK_KEY, pending.track.id);
+        state.data = pending.data;
+        renderTrackSelect();
+        renderAll();
+        toast(`"${pending.track.name}" restored.`);
+      },
+    });
+  });
+
   // ---------- legacy localStorage migration ----------
 
   async function maybeMigrateLegacyData(generalTrackId) {
@@ -432,6 +483,25 @@
     lastCategoryValue = categorySelect.value;
   });
 
+  const accountSelect = document.getElementById("account");
+  let lastAccountValue = "";
+
+  accountSelect.addEventListener("change", () => {
+    if (accountSelect.value === "__new__") {
+      const name = (prompt("New account name:") || "").trim();
+      if (!name) {
+        accountSelect.value = lastAccountValue;
+        return;
+      }
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      accountSelect.insertBefore(opt, accountSelect.querySelector('option[value="__new__"]'));
+      accountSelect.value = name;
+    }
+    lastAccountValue = accountSelect.value;
+  });
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (isCurrentTrackClosed()) {
@@ -490,6 +560,7 @@
     document.getElementById("note").value = rec.note || "";
     document.getElementById("type").value = rec.type || "expense";
     document.getElementById("account").value = rec.account || "";
+    lastAccountValue = rec.account || "";
     formTitle.textContent = "Edit Expense";
     submitBtn.textContent = "Save Changes";
     cancelEditBtn.classList.remove("hidden");
@@ -502,6 +573,7 @@
     document.getElementById("date").value = todayISO();
     document.getElementById("type").value = "expense";
     lastCategoryValue = "";
+    lastAccountValue = "";
     formTitle.textContent = "Add Expense";
     submitBtn.textContent = "Add Expense";
     cancelEditBtn.classList.add("hidden");
