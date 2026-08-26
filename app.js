@@ -24,6 +24,8 @@
     sort: { key: "date", dir: "desc" },
     search: "",
     categoryFilterValue: "",
+    typeFilterValue: "",
+    accountFilterValue: "",
     pendingDelete: null,
   };
 
@@ -144,6 +146,14 @@
       `<option value="">All Categories</option>` +
       sortedCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     categoryFilterEl.value = sortedCats.includes(currentFilterValue) ? currentFilterValue : "";
+
+    const sortedAccs = [...accs].sort();
+    const accountFilterEl = document.getElementById("accountFilter");
+    const currentAccountFilterValue = accountFilterEl.value;
+    accountFilterEl.innerHTML =
+      `<option value="">All Accounts</option>` +
+      sortedAccs.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
+    accountFilterEl.value = sortedAccs.includes(currentAccountFilterValue) ? currentAccountFilterValue : "";
   }
 
   // ---------- auth ----------
@@ -592,9 +602,14 @@
     return shadeColor(base, SHADE_STEPS[cycle % SHADE_STEPS.length]);
   }
 
+  function matchesFilters(e) {
+    return (!state.categoryFilterValue || e.category === state.categoryFilterValue) &&
+      (!state.typeFilterValue || e.type === state.typeFilterValue) &&
+      (!state.accountFilterValue || e.account === state.accountFilterValue);
+  }
+
   function renderDashboard() {
-    const filtered = filterByRange(state.data)
-      .filter((e) => !state.categoryFilterValue || e.category === state.categoryFilterValue);
+    const filtered = filterByRange(state.data).filter(matchesFilters);
     const expenses = filtered.filter((e) => e.type === "expense");
     const income = filtered.filter((e) => e.type === "income");
     const investments = filtered.filter((e) => e.type === "investment");
@@ -720,6 +735,33 @@
     renderDashboard();
   });
 
+  const typeFilter = document.getElementById("typeFilter");
+  typeFilter.addEventListener("change", () => {
+    state.typeFilterValue = typeFilter.value;
+    renderTable();
+    renderDashboard();
+  });
+
+  const accountFilter = document.getElementById("accountFilter");
+  accountFilter.addEventListener("change", () => {
+    state.accountFilterValue = accountFilter.value;
+    renderTable();
+    renderDashboard();
+  });
+
+  document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+    state.search = "";
+    state.categoryFilterValue = "";
+    state.typeFilterValue = "";
+    state.accountFilterValue = "";
+    searchInput.value = "";
+    categoryFilter.value = "";
+    typeFilter.value = "";
+    accountFilter.value = "";
+    renderTable();
+    renderDashboard();
+  });
+
   document.querySelectorAll("#expenseTable thead th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {
       const key = th.dataset.sort;
@@ -736,7 +778,7 @@
     const q = normalize(state.search);
     let rows = state.data.filter((e) =>
       (!q || normalize(e.note).includes(q) || normalize(e.category).includes(q)) &&
-      (!state.categoryFilterValue || e.category === state.categoryFilterValue)
+      matchesFilters(e)
     );
 
     const { key, dir } = state.sort;

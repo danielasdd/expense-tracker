@@ -244,7 +244,8 @@ select, input[type="text"], input[type="number"], input[type="date"] {
 @media (max-width: 600px) {
   .table-filters { width: 100%; }
   .table-header input { min-width: 0; flex: 1 1 auto; }
-  #categoryFilter { flex: 1 1 auto; }
+  #categoryFilter, #typeFilter, #accountFilter { flex: 1 1 auto; }
+  #clearFiltersBtn { flex: 1 1 100%; }
 }
 
 .table-wrap { overflow-x: auto; }
