@@ -593,7 +593,8 @@
   }
 
   function renderDashboard() {
-    const filtered = filterByRange(state.data);
+    const filtered = filterByRange(state.data)
+      .filter((e) => !state.categoryFilterValue || e.category === state.categoryFilterValue);
     const expenses = filtered.filter((e) => e.type === "expense");
     const income = filtered.filter((e) => e.type === "income");
     const investments = filtered.filter((e) => e.type === "investment");
@@ -716,6 +717,7 @@
   categoryFilter.addEventListener("change", () => {
     state.categoryFilterValue = categoryFilter.value;
     renderTable();
+    renderDashboard();
   });
 
   document.querySelectorAll("#expenseTable thead th[data-sort]").forEach((th) => {
