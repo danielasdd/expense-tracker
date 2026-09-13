@@ -161,6 +161,8 @@
       `<option value="">All Accounts</option>` +
       sortedAccs.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
     accountFilterEl.value = sortedAccs.includes(currentAccountFilterValue) ? currentAccountFilterValue : "";
+
+    refreshYearFilter();
   }
 
   // ---------- auth ----------
@@ -620,50 +622,59 @@
 
   const rangeSelect = document.getElementById("rangeSelect");
   const customRange = document.getElementById("customRange");
-  const customFrom = document.getElementById("customFrom");
-  const customTo = document.getElementById("customTo");
-  const specificMonth = document.getElementById("specificMonth");
-  const monthPicker = document.getElementById("monthPicker");
+  const dayFilter = document.getElementById("dayFilter");
+  const monthFilter = document.getElementById("monthFilter");
+  const yearFilter = document.getElementById("yearFilter");
+
+  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  dayFilter.innerHTML = `<option value="all">All</option>` +
+    Array.from({ length: 31 }, (_, i) => i + 1).map((d) => `<option value="${d}">${d}</option>`).join("");
+  monthFilter.innerHTML = `<option value="all">All</option>` +
+    MONTH_NAMES.map((name, i) => `<option value="${i + 1}">${name}</option>`).join("");
 
   rangeSelect.addEventListener("change", () => {
     customRange.classList.toggle("hidden", rangeSelect.value !== "custom");
-    specificMonth.classList.toggle("hidden", rangeSelect.value !== "specificMonth");
-    if (rangeSelect.value === "specificMonth" && !monthPicker.value) {
-      monthPicker.value = todayISO().slice(0, 7);
-    }
     renderDashboard();
   });
-  customFrom.addEventListener("change", renderDashboard);
-  customTo.addEventListener("change", renderDashboard);
-  monthPicker.addEventListener("change", renderDashboard);
+  dayFilter.addEventListener("change", renderDashboard);
+  monthFilter.addEventListener("change", renderDashboard);
+  yearFilter.addEventListener("change", renderDashboard);
 
-  function monthBounds(y, m) {
-    const lastDay = new Date(y, m, 0).getDate();
-    return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}` };
+  function refreshYearFilter() {
+    const years = new Set([new Date().getFullYear()]);
+    state.data.forEach((e) => years.add(Number(e.date.slice(0, 4))));
+    const sortedYears = [...years].sort((a, b) => b - a);
+    const currentValue = yearFilter.value || "all";
+    yearFilter.innerHTML = `<option value="all">All</option>` +
+      sortedYears.map((y) => `<option value="${y}">${y}</option>`).join("");
+    yearFilter.value = sortedYears.includes(Number(currentValue)) ? currentValue : "all";
+  }
+
+  function matchesCustomDate(e) {
+    const [y, m, d] = e.date.split("-").map(Number);
+    if (dayFilter.value !== "all" && d !== Number(dayFilter.value)) return false;
+    if (monthFilter.value !== "all" && m !== Number(monthFilter.value)) return false;
+    if (yearFilter.value !== "all" && y !== Number(yearFilter.value)) return false;
+    return true;
   }
 
   function getRangeBounds() {
     const now = new Date();
     const mode = rangeSelect.value;
-    if (mode === "all") return { from: null, to: null };
     if (mode === "year") {
       return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` };
     }
     if (mode === "month") {
-      return monthBounds(now.getFullYear(), now.getMonth() + 1);
-    }
-    if (mode === "specificMonth") {
-      if (!monthPicker.value) return { from: null, to: null };
-      const [y, m] = monthPicker.value.split("-").map(Number);
-      return monthBounds(y, m);
-    }
-    if (mode === "custom") {
-      return { from: customFrom.value || null, to: customTo.value || null };
+      const y = now.getFullYear(), m = now.getMonth() + 1;
+      const lastDay = new Date(y, m, 0).getDate();
+      return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}` };
     }
     return { from: null, to: null };
   }
 
   function filterByRange(data) {
+    if (rangeSelect.value === "custom") return data.filter(matchesCustomDate);
     const { from, to } = getRangeBounds();
     return data.filter((e) => (!from || e.date >= from) && (!to || e.date <= to));
   }

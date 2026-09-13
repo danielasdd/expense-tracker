@@ -92,7 +92,8 @@ body.track-closed .row-actions .btn-danger { display: none; }
 
 @media (max-width: 600px) {
   .custom-range { width: 100%; }
-  .custom-range input[type="date"] { flex: 1 1 120px; }
+  .custom-range .range-label { flex: 1 1 100px; }
+  .custom-range select { flex: 1; }
 }
 
 select, input[type="text"], input[type="number"], input[type="date"] {

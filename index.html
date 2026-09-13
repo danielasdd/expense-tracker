@@ -64,17 +64,22 @@
         <option value="all">All time</option>
         <option value="year">This year</option>
         <option value="month" selected>This month</option>
-        <option value="specificMonth">Specific month</option>
         <option value="custom">Custom</option>
       </select>
     </label>
-    <div id="specificMonth" class="custom-range hidden">
-      <input type="month" id="monthPicker">
-    </div>
     <div id="customRange" class="custom-range hidden">
-      <input type="date" id="customFrom">
-      <span>to</span>
-      <input type="date" id="customTo">
+      <label class="range-label">
+        Day:
+        <select id="dayFilter"></select>
+      </label>
+      <label class="range-label">
+        Month:
+        <select id="monthFilter"></select>
+      </label>
+      <label class="range-label">
+        Year:
+        <select id="yearFilter"></select>
+      </label>
     </div>
 
     <label class="range-label">
