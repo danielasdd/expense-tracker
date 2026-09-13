@@ -141,11 +141,12 @@
     const sortedAccs = [...accs].sort();
     const accountSelectEl = document.getElementById("account");
     const currentAccountValue = accountSelectEl.value;
+    const defaultAccountValue = currentAccountValue || "Novo Banco";
     accountSelectEl.innerHTML =
-      `<option value="" disabled${currentAccountValue ? "" : " selected"}>Select an account</option>` +
-      sortedAccs.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("") +
+      `<option value="" disabled>Select an account</option>` +
+      sortedAccs.map((a) => `<option value="${escapeHtml(a)}"${a === defaultAccountValue ? " selected" : ""}>${escapeHtml(a)}</option>`).join("") +
       `<option value="__new__">+ Add new account…</option>`;
-    if (sortedAccs.includes(currentAccountValue)) accountSelectEl.value = currentAccountValue;
+    if (sortedAccs.includes(defaultAccountValue)) accountSelectEl.value = defaultAccountValue;
 
     const categoryFilterEl = document.getElementById("categoryFilter");
     const currentFilterValue = categoryFilterEl.value;
@@ -484,7 +485,7 @@
   });
 
   const accountSelect = document.getElementById("account");
-  let lastAccountValue = "";
+  let lastAccountValue = "Novo Banco";
 
   accountSelect.addEventListener("change", () => {
     if (accountSelect.value === "__new__") {
@@ -572,8 +573,9 @@
     form.reset();
     document.getElementById("date").value = todayISO();
     document.getElementById("type").value = "expense";
+    document.getElementById("account").value = "Novo Banco";
     lastCategoryValue = "";
-    lastAccountValue = "";
+    lastAccountValue = "Novo Banco";
     formTitle.textContent = "Add Expense";
     submitBtn.textContent = "Add Expense";
     cancelEditBtn.classList.add("hidden");
@@ -620,13 +622,25 @@
   const customRange = document.getElementById("customRange");
   const customFrom = document.getElementById("customFrom");
   const customTo = document.getElementById("customTo");
+  const specificMonth = document.getElementById("specificMonth");
+  const monthPicker = document.getElementById("monthPicker");
 
   rangeSelect.addEventListener("change", () => {
     customRange.classList.toggle("hidden", rangeSelect.value !== "custom");
+    specificMonth.classList.toggle("hidden", rangeSelect.value !== "specificMonth");
+    if (rangeSelect.value === "specificMonth" && !monthPicker.value) {
+      monthPicker.value = todayISO().slice(0, 7);
+    }
     renderDashboard();
   });
   customFrom.addEventListener("change", renderDashboard);
   customTo.addEventListener("change", renderDashboard);
+  monthPicker.addEventListener("change", renderDashboard);
+
+  function monthBounds(y, m) {
+    const lastDay = new Date(y, m, 0).getDate();
+    return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}` };
+  }
 
   function getRangeBounds() {
     const now = new Date();
@@ -636,9 +650,12 @@
       return { from: `${now.getFullYear()}-01-01`, to: `${now.getFullYear()}-12-31` };
     }
     if (mode === "month") {
-      const y = now.getFullYear(), m = now.getMonth() + 1;
-      const lastDay = new Date(y, m, 0).getDate();
-      return { from: `${y}-${String(m).padStart(2, "0")}-01`, to: `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}` };
+      return monthBounds(now.getFullYear(), now.getMonth() + 1);
+    }
+    if (mode === "specificMonth") {
+      if (!monthPicker.value) return { from: null, to: null };
+      const [y, m] = monthPicker.value.split("-").map(Number);
+      return monthBounds(y, m);
     }
     if (mode === "custom") {
       return { from: customFrom.value || null, to: customTo.value || null };
