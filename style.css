@@ -23,6 +23,14 @@ body {
   background: var(--bg);
   color: var(--text);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* iOS Safari can misplace `position: fixed` elements (like the bottom tab
+     bar) when a tab's content is shorter than the real viewport, because the
+     page never becomes scrollable and the address bar's height never gets
+     re-measured. Keeping the page at least one full viewport tall — even on
+     the short Tools tab — avoids that state. `dvh` (the actual visible
+     viewport) overrides the `vh` fallback where it's supported. */
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .app { max-width: 1280px; margin: 0 auto; padding: 24px; }
@@ -88,7 +96,15 @@ body.track-closed .row-actions .btn-danger { display: none; }
 
 /* ---------- tabs ---------- */
 
-.track-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.track-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
 
 .tabs {
   display: flex;
@@ -161,6 +177,11 @@ body.track-closed .row-actions .btn-danger { display: none; }
 
 .tab-pane.hidden { display: none; }
 .tab-pane .range-bar { border-top: none; padding-top: 0; margin-bottom: 16px; }
+/* Range and Category are direct children (the conditional day/month/year
+   trio lives one level deeper, in .custom-range, so ">" leaves it alone and
+   those stay their normal compact size). */
+.tab-pane .range-bar > .range-label { flex: 1 1 220px; }
+.tab-pane .range-bar > .range-label select { width: 100%; }
 .form-panel { max-width: 520px; }
 .form-panel .btn-block { margin-top: 18px; }
 

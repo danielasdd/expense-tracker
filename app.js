@@ -992,7 +992,7 @@
         <td data-label="Date">${e.date}</td>
         <td class="amount-${e.type}" data-label="Amount">${fmtMoney(e.amount)}</td>
         <td data-label="Category">${escapeHtml(e.category)}</td>
-        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span>${e.recurring ? ` <span class="recurring-badge" title="Created automatically by a monthly transaction">↻ monthly</span>` : ""}</td>
+        <td data-label="Type">${e.recurring ? `<span class="recurring-badge" title="Created automatically by a monthly transaction">↻ monthly</span> ` : ""}<span class="type-badge ${e.type}">${e.type}</span></td>
         <td data-label="Account">${escapeHtml(e.account || "")}</td>
         <td data-label="Note">${escapeHtml(e.note || "")}</td>
         <td class="row-actions">
