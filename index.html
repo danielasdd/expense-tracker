@@ -229,14 +229,16 @@
 
 <div id="importModal" class="modal hidden">
   <div class="modal-content">
-    <h2>Import from Excel</h2>
+    <div class="modal-header">
+      <h2>Import from Excel</h2>
+      <button type="button" class="modal-close" id="importCancelBtn" aria-label="Close">&times;</button>
+    </div>
     <div id="importStep1">
       <p>Select the sheet that contains your transactions:</p>
       <select id="importSheetSelect"></select>
       <p class="modal-preview" id="importPreview"></p>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" id="importCancelBtn">Cancel</button>
       <button class="btn btn-primary" id="importConfirmBtn">Import</button>
     </div>
   </div>
@@ -244,7 +246,11 @@
 
 <div id="recurringModal" class="modal hidden">
   <div class="modal-content recurring-content">
-    <h2>Recurring Transactions</h2>
+    <div class="modal-header">
+      <h2>Recurring Transactions</h2>
+      <button type="button" class="modal-close" id="recurringCloseBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
     <p class="modal-preview">Added to the General track automatically each month, the first time you open the app on or after the day.</p>
     <ul id="recurringList" class="recurring-list"></ul>
     <p class="empty-note hidden" id="recurringEmpty">No recurring transactions yet.</p>
@@ -290,10 +296,7 @@
         <button type="submit" class="btn btn-primary" id="recurringSaveBtn">Add</button>
       </div>
     </form>
-
-    <div class="modal-actions">
-      <button type="button" class="btn btn-ghost" id="recurringCloseBtn">Close</button>
-    </div>
+    </div><!-- .modal-body -->
   </div>
 </div>
 

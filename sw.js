@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-tracker-v6";
+const CACHE_NAME = "expense-tracker-v7";
 const CORE_ASSETS = [
   "./",
   "./index.html",

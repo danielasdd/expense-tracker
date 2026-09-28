@@ -363,11 +363,30 @@ tbody tr:hover { background: #f9f8fe; }
 }
 
 .modal-content h2 { margin-top: 0; font-size: 17px; }
+
+.modal-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.modal-header h2 { margin: 0; }
+.modal-close {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-close:hover { background: #f2f1f7; color: var(--text); }
 .modal-content select { width: 100%; margin-top: 8px; }
 .modal-preview { font-size: 13px; color: var(--text-muted); margin-top: 12px; white-space: pre-line; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 
-.recurring-content { width: 560px; max-height: 90vh; overflow-y: auto; }
+/* Header (title + close) stays put; only the body scrolls. */
+.recurring-content { width: 560px; max-height: 90vh; display: flex; flex-direction: column; }
+.recurring-content .modal-body { overflow-y: auto; min-height: 0; }
 .recurring-content input[type="text"],
 .recurring-content input[type="number"],
 .recurring-content input[type="month"] { width: 100%; box-sizing: border-box; }
