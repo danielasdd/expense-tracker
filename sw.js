@@ -1,4 +1,4 @@
-const CACHE_NAME = "expense-tracker-v5";
+const CACHE_NAME = "expense-tracker-v6";
 const CORE_ASSETS = [
   "./",
   "./index.html",
@@ -36,18 +36,18 @@ self.addEventListener("fetch", (event) => {
   // strategy is only for this app's own static shell. Caching dynamic,
   // per-user API responses here would silently serve stale data forever.
   if (new URL(event.request.url).origin !== self.location.origin) return;
+  // Network-first: always try for the newest files so updates show up on the
+  // next load (a cache-first strategy needed two reloads). The cache is only
+  // the offline fallback.
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const network = fetch(event.request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

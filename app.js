@@ -1279,26 +1279,65 @@
     recurringCancelEditBtn.classList.add("hidden");
   }
 
-  function fillRecurringDatalists() {
+  const recCategorySelect = document.getElementById("recCategory");
+  const recAccountSelect = document.getElementById("recAccount");
+
+  // Same options and "+ Add new…" behaviour as the Add Expense form's dropdowns.
+  function fillRecurringSelects() {
     const cats = new Set(PRESET_CATEGORIES);
     const accs = new Set(PRESET_ACCOUNTS);
     recurring.rules.forEach((r) => { cats.add(r.category); if (r.account) accs.add(r.account); });
     state.data.forEach((e) => { if (e.category) cats.add(e.category); if (e.account) accs.add(e.account); });
-    const opts = (set) => [...set].sort().map((v) => `<option value="${escapeHtml(v)}"></option>`).join("");
-    document.getElementById("recCategoryList").innerHTML = opts(cats);
-    document.getElementById("recAccountList").innerHTML = opts(accs);
+
+    const fill = (select, values, placeholder, addLabel, defaultValue) => {
+      const current = select.value && select.value !== "__new__" ? select.value : defaultValue;
+      if (current) values.add(current);
+      select.innerHTML =
+        `<option value="" disabled${defaultValue ? "" : " selected"}>${placeholder}</option>` +
+        [...values].sort().map((v) => `<option value="${escapeHtml(v)}"${v === defaultValue ? " selected" : ""}>${escapeHtml(v)}</option>`).join("") +
+        `<option value="__new__">${addLabel}</option>`;
+      select.value = current || "";
+      select.dataset.last = select.value;
+    };
+    fill(recCategorySelect, cats, "Select a category", "+ Add new category…", "");
+    fill(recAccountSelect, accs, "Select an account", "+ Add new account…", "Novo Banco");
   }
+
+  function setRecurringSelect(select, value) {
+    if (value && !Array.from(select.options).some((o) => o.value === value)) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = value;
+      select.insertBefore(opt, select.querySelector('option[value="__new__"]'));
+    }
+    select.value = value || "";
+    select.dataset.last = select.value;
+  }
+
+  [[recCategorySelect, "New category name:"], [recAccountSelect, "New account name:"]].forEach(([select, promptText]) => {
+    select.addEventListener("change", () => {
+      if (select.value === "__new__") {
+        const name = (prompt(promptText) || "").trim();
+        if (!name) {
+          select.value = select.dataset.last || "";
+          return;
+        }
+        setRecurringSelect(select, name);
+      }
+      select.dataset.last = select.value;
+    });
+  });
 
   document.getElementById("recurringBtn").addEventListener("click", async () => {
     recurringModal.classList.remove("hidden");
     resetRecurringForm();
-    fillRecurringDatalists();
+    fillRecurringSelects();
     renderRecurring();
     try {
       const { data, error } = await sb.from("recurring").select("*").order("created_at");
       if (error) throw error;
       recurring.rules = data || [];
-      fillRecurringDatalists();
+      fillRecurringSelects();
       renderRecurring();
     } catch (err) {
       toast("Could not load recurring transactions: " + err.message);
@@ -1363,8 +1402,8 @@
         recurring.editId = rule.id;
         document.getElementById("recType").value = rule.type;
         document.getElementById("recAmount").value = rule.amount;
-        document.getElementById("recCategory").value = rule.category;
-        document.getElementById("recAccount").value = rule.account || "";
+        setRecurringSelect(recCategorySelect, rule.category);
+        setRecurringSelect(recAccountSelect, rule.account || "");
         document.getElementById("recNote").value = rule.note || "";
         document.getElementById("recDay").value = rule.day_of_month;
         document.getElementById("recStart").value = rule.start_month;

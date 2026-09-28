@@ -263,12 +263,14 @@
           <input type="number" id="recAmount" step="0.01" min="0" required placeholder="0.00">
         </label>
         <label>Category
-          <input type="text" id="recCategory" list="recCategoryList" required placeholder="e.g. Ordenado">
-          <datalist id="recCategoryList"></datalist>
+          <select id="recCategory" required>
+            <option value="" disabled selected>Select a category</option>
+          </select>
         </label>
         <label>Account
-          <input type="text" id="recAccount" list="recAccountList" placeholder="e.g. Novo Banco">
-          <datalist id="recAccountList"></datalist>
+          <select id="recAccount">
+            <option value="Novo Banco" selected>Novo Banco</option>
+          </select>
         </label>
         <label>Day of month
           <input type="number" id="recDay" min="1" max="31" step="1" required placeholder="1-31">
