@@ -383,7 +383,7 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 @media (max-width: 600px) {
   .table-filters { width: 100%; }
   .table-header input { min-width: 0; flex: 1 1 auto; }
-  #categoryFilter, #typeFilter, #accountFilter, #sourceFilter { flex: 1 1 auto; }
+  #categoryFilter, #typeFilter, #sourceFilter { flex: 1 1 auto; }
   #clearFiltersBtn { flex: 1 1 100%; }
 }
 
@@ -434,6 +434,7 @@ tbody tr:hover { background: #f9f8fe; }
   white-space: nowrap;
   background: #e8e1e8;
   color: #663466;
+  margin-right: 5mm; /* gap to the type badge sitting right after it */
 }
 
 .row-actions { display: flex; gap: 6px; }

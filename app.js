@@ -25,7 +25,6 @@
     search: "",
     categoryFilterValue: "",
     typeFilterValue: "",
-    accountFilterValue: "",
     sourceFilterValue: "",
     pendingDelete: null,
     pendingTrackDelete: null,
@@ -164,13 +163,6 @@
     const dashCategoryEl = document.getElementById("dashCategoryFilter");
     dashCategoryEl.innerHTML = categoryFilterEl.innerHTML;
     dashCategoryEl.value = categoryFilterEl.value;
-
-    const accountFilterEl = document.getElementById("accountFilter");
-    const currentAccountFilterValue = accountFilterEl.value;
-    accountFilterEl.innerHTML =
-      `<option value="">All Accounts</option>` +
-      sortedAccs.map((a) => `<option value="${escapeHtml(a)}">${escapeHtml(a)}</option>`).join("");
-    accountFilterEl.value = sortedAccs.includes(currentAccountFilterValue) ? currentAccountFilterValue : "";
 
     refreshYearFilter();
   }
@@ -753,7 +745,6 @@
   function matchesFilters(e) {
     return (!state.categoryFilterValue || e.category === state.categoryFilterValue) &&
       (!state.typeFilterValue || e.type === state.typeFilterValue) &&
-      (!state.accountFilterValue || e.account === state.accountFilterValue) &&
       (!state.sourceFilterValue || e.recurring === (state.sourceFilterValue === "recurring"));
   }
 
@@ -899,45 +890,40 @@
     renderDashboard();
   });
 
-  const accountFilter = document.getElementById("accountFilter");
-  accountFilter.addEventListener("change", () => {
-    state.accountFilterValue = accountFilter.value;
-    renderTable();
-    renderDashboard();
-  });
-
   const sourceFilter = document.getElementById("sourceFilter");
-  sourceFilter.addEventListener("change", () => {
-    state.sourceFilterValue = sourceFilter.value;
+  const dashSourceFilter = document.getElementById("dashSourceFilter");
+
+  // Same pattern as the category filter above: one setting, two dropdowns.
+  function setSourceFilter(value) {
+    state.sourceFilterValue = value;
+    sourceFilter.value = value;
+    dashSourceFilter.value = value;
     renderTable();
     renderDashboard();
-  });
+  }
+  sourceFilter.addEventListener("change", () => setSourceFilter(sourceFilter.value));
+  dashSourceFilter.addEventListener("change", () => setSourceFilter(dashSourceFilter.value));
 
   document.getElementById("clearFiltersBtn").addEventListener("click", () => {
     state.search = "";
     state.categoryFilterValue = "";
     state.typeFilterValue = "";
-    state.accountFilterValue = "";
     state.sourceFilterValue = "";
     searchInput.value = "";
     categoryFilter.value = "";
     dashCategoryFilter.value = "";
     typeFilter.value = "";
-    accountFilter.value = "";
     sourceFilter.value = "";
+    dashSourceFilter.value = "";
     renderTable();
     renderDashboard();
   });
 
-  // Type / account / source filters live in the Transactions tab but also shape
-  // the Dashboard; say so on the Dashboard so its numbers aren't a mystery.
+  // The Type filter lives only in the Transactions tab but also shapes the
+  // Dashboard; say so on the Dashboard so its numbers aren't a mystery.
   document.getElementById("dashFilterNoteClear").addEventListener("click", () => {
     state.typeFilterValue = "";
-    state.accountFilterValue = "";
-    state.sourceFilterValue = "";
     typeFilter.value = "";
-    accountFilter.value = "";
-    sourceFilter.value = "";
     renderTable();
     renderDashboard();
   });
@@ -945,8 +931,6 @@
   function updateDashFilterNote() {
     const parts = [];
     if (state.typeFilterValue) parts.push("Type: " + state.typeFilterValue);
-    if (state.accountFilterValue) parts.push("Account: " + state.accountFilterValue);
-    if (state.sourceFilterValue) parts.push(state.sourceFilterValue === "recurring" ? "Monthly only" : "Manual only");
     document.getElementById("dashFilterNote").classList.toggle("hidden", parts.length === 0);
     document.getElementById("dashFilterNoteText").textContent = parts.length ? "Also filtered from Transactions — " + parts.join(", ") : "";
   }
@@ -992,7 +976,7 @@
         <td data-label="Date">${e.date}</td>
         <td class="amount-${e.type}" data-label="Amount">${fmtMoney(e.amount)}</td>
         <td data-label="Category">${escapeHtml(e.category)}</td>
-        <td data-label="Type">${e.recurring ? `<span class="recurring-badge" title="Created automatically by a monthly transaction">↻ monthly</span> ` : ""}<span class="type-badge ${e.type}">${e.type}</span></td>
+        <td data-label="Type">${e.recurring ? `<span class="recurring-badge" title="Created automatically by a monthly transaction">↻ monthly</span>` : ""}<span class="type-badge ${e.type}">${e.type}</span></td>
         <td data-label="Account">${escapeHtml(e.account || "")}</td>
         <td data-label="Note">${escapeHtml(e.note || "")}</td>
         <td class="row-actions">

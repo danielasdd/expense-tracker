@@ -158,6 +158,14 @@
           <option value="">All Categories</option>
         </select>
       </label>
+      <label class="range-label">
+        Entries:
+        <select id="dashSourceFilter">
+          <option value="">All Entries</option>
+          <option value="recurring">Monthly only</option>
+          <option value="manual">Manual only</option>
+        </select>
+      </label>
     </div>
     <p id="dashFilterNote" class="dash-filter-note hidden">
       <span id="dashFilterNoteText"></span>
@@ -212,9 +220,6 @@
             <option value="expense">Expense</option>
             <option value="income">Income</option>
             <option value="investment">Investment</option>
-          </select>
-          <select id="accountFilter">
-            <option value="">All Accounts</option>
           </select>
           <select id="sourceFilter">
             <option value="">All Entries</option>
