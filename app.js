@@ -256,6 +256,7 @@
       await refreshCurrentTrackData();
       renderTrackSelect();
       renderAll();
+      refreshBackupBanner();
       await applyRecurring();
     } catch (err) {
       toast("Could not load your data: " + err.message);
@@ -948,6 +949,7 @@
     a.download = `expense-tracker-${slugify(trackName)}-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    recordBackup();
   });
 
   const TYPE_LABELS_PT = { expense: "Despesa", income: "Rendimento", investment: "Investimento" };
@@ -973,6 +975,7 @@
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Finanças");
     XLSX.writeFile(wb, `expense-tracker-${slugify(trackName)}-${todayISO()}.xlsx`, { cellDates: true });
+    recordBackup();
   });
 
   document.getElementById("restoreInput").addEventListener("change", (e) => {
@@ -1436,6 +1439,89 @@
     }
   });
 
+  // ---------- backup reminder ----------
+
+  // The free Supabase plan has no restorable backups, so nudge the user to
+  // export their General track now and then. The last-backup date lives in the
+  // account's user_metadata (no table needed) so phone and desktop agree.
+  const BACKUP_INTERVAL_DAYS = 30;
+  const BACKUP_SNOOZE_DAYS = 7;
+  const BACKUP_SNOOZE_KEY = "expenseTrackerBackupSnoozeUntil_v1";
+
+  const backupBanner = document.getElementById("backupBanner");
+  const backupBannerText = document.getElementById("backupBannerText");
+
+  function isoToDay(iso) {
+    const [y, m, d] = iso.split("-").map(Number);
+    return Date.UTC(y, m - 1, d) / 86400000;
+  }
+
+  function addDaysISO(iso, days) {
+    const d = new Date((isoToDay(iso) + days) * 86400000);
+    return d.getUTCFullYear() + "-" + String(d.getUTCMonth() + 1).padStart(2, "0") + "-" + String(d.getUTCDate()).padStart(2, "0");
+  }
+
+  function updateBackupBanner() {
+    if (!state.session) return;
+    const today = todayISO();
+    const last = state.session.user?.user_metadata?.last_backup || null;
+    const age = last ? isoToDay(today) - isoToDay(last) : Infinity;
+
+    let snoozeUntil = null;
+    try { snoozeUntil = localStorage.getItem(BACKUP_SNOOZE_KEY); } catch (_) { /* storage blocked */ }
+
+    const show = age >= BACKUP_INTERVAL_DAYS && !(snoozeUntil && snoozeUntil > today);
+    backupBanner.classList.toggle("hidden", !show);
+    if (show) {
+      backupBannerText.textContent =
+        (last ? `It's been ${age} days since your last backup.` : "You haven't backed up your data yet.") +
+        " Export your General track (JSON or Excel) to keep a copy.";
+    }
+  }
+
+  // The session cached on a device can hold a stale copy of user_metadata, so
+  // ask the server for the current one before deciding whether to nag.
+  async function refreshBackupBanner() {
+    try {
+      const { data, error } = await sb.auth.getUser();
+      if (error) throw error;
+      if (data?.user && state.session) state.session.user = data.user;
+    } catch (err) {
+      console.error("Could not refresh backup status", err);
+    }
+    updateBackupBanner();
+  }
+
+  // Called after a successful export. Only the General track counts, since
+  // that's the roll-up ledger.
+  async function recordBackup() {
+    if (!currentTrack()?.is_general) return;
+    const today = todayISO();
+    try {
+      const { data, error } = await sb.auth.updateUser({ data: { last_backup: today } });
+      if (error) throw error;
+      if (data?.user) state.session.user = data.user;
+    } catch (err) {
+      console.error("Could not record backup date", err);
+      state.session.user.user_metadata = { ...(state.session.user.user_metadata || {}), last_backup: today };
+    }
+    updateBackupBanner();
+  }
+
+  document.getElementById("backupNowBtn").addEventListener("click", async () => {
+    const general = state.tracks.find((t) => t.is_general);
+    if (general && state.currentTrackId !== general.id) {
+      await switchTrack(general.id);
+      renderTrackSelect();
+    }
+    document.getElementById("exportBtn").click();
+  });
+
+  document.getElementById("backupLaterBtn").addEventListener("click", () => {
+    try { localStorage.setItem(BACKUP_SNOOZE_KEY, addDaysISO(todayISO(), BACKUP_SNOOZE_DAYS)); } catch (_) { /* storage blocked */ }
+    backupBanner.classList.add("hidden");
+  });
+
   // ---------- close modals: Escape key / click outside ----------
 
   // Each modal's × button already has the right close handler, so reuse it.
@@ -1470,6 +1556,7 @@
   async function refreshOnFocus() {
     if (!state.session || !state.currentTrackId || state.editId) return;
     try {
+      refreshBackupBanner();
       await applyRecurring();
       await refreshCurrentTrackData();
       renderAll();

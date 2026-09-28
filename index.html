@@ -46,6 +46,14 @@
 
   <div id="appContent" class="hidden">
 
+  <div id="backupBanner" class="backup-banner hidden" role="status">
+    <span id="backupBannerText"></span>
+    <div class="backup-banner-actions">
+      <button type="button" class="btn btn-primary" id="backupNowBtn">Back up now</button>
+      <button type="button" class="btn btn-ghost" id="backupLaterBtn">Remind me in 7 days</button>
+    </div>
+  </div>
+
   <div class="toolbar">
     <button id="importBtn" class="btn btn-tool btn-tool-primary">Import Excel</button>
     <button id="exportExcelBtn" class="btn btn-tool btn-tool-rose">Export Excel</button>
