@@ -248,7 +248,7 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
 @media (max-width: 600px) {
   .table-filters { width: 100%; }
   .table-header input { min-width: 0; flex: 1 1 auto; }
-  #categoryFilter, #typeFilter, #accountFilter { flex: 1 1 auto; }
+  #categoryFilter, #typeFilter, #accountFilter, #sourceFilter { flex: 1 1 auto; }
   #clearFiltersBtn { flex: 1 1 100%; }
 }
 
@@ -289,6 +289,17 @@ tbody tr:hover { background: #f9f8fe; }
 .type-badge.expense { background: #f5e1eb; color: var(--danger); }
 .type-badge.income { background: #e7e9eb; color: var(--success); }
 .type-badge.investment { background: #e9f0f4; color: var(--invest); }
+
+.recurring-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+  white-space: nowrap;
+  background: #e8e1e8;
+  color: #663466;
+}
 
 .row-actions { display: flex; gap: 6px; }
 

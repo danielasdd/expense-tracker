@@ -26,6 +26,7 @@
     categoryFilterValue: "",
     typeFilterValue: "",
     accountFilterValue: "",
+    sourceFilterValue: "",
     pendingDelete: null,
     pendingTrackDelete: null,
   };
@@ -116,6 +117,7 @@
       note: row.note || "",
       type: row.type,
       account: row.account || "",
+      recurring: !!row.recurring_id,
     };
   }
 
@@ -706,7 +708,8 @@
   function matchesFilters(e) {
     return (!state.categoryFilterValue || e.category === state.categoryFilterValue) &&
       (!state.typeFilterValue || e.type === state.typeFilterValue) &&
-      (!state.accountFilterValue || e.account === state.accountFilterValue);
+      (!state.accountFilterValue || e.account === state.accountFilterValue) &&
+      (!state.sourceFilterValue || e.recurring === (state.sourceFilterValue === "recurring"));
   }
 
   function renderDashboard() {
@@ -850,15 +853,24 @@
     renderDashboard();
   });
 
+  const sourceFilter = document.getElementById("sourceFilter");
+  sourceFilter.addEventListener("change", () => {
+    state.sourceFilterValue = sourceFilter.value;
+    renderTable();
+    renderDashboard();
+  });
+
   document.getElementById("clearFiltersBtn").addEventListener("click", () => {
     state.search = "";
     state.categoryFilterValue = "";
     state.typeFilterValue = "";
     state.accountFilterValue = "";
+    state.sourceFilterValue = "";
     searchInput.value = "";
     categoryFilter.value = "";
     typeFilter.value = "";
     accountFilter.value = "";
+    sourceFilter.value = "";
     renderTable();
     renderDashboard();
   });
@@ -904,7 +916,7 @@
         <td data-label="Date">${e.date}</td>
         <td class="amount-${e.type}" data-label="Amount">${fmtMoney(e.amount)}</td>
         <td data-label="Category">${escapeHtml(e.category)}</td>
-        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span></td>
+        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span>${e.recurring ? ` <span class="recurring-badge" title="Created automatically by a recurring rule">↻ monthly</span>` : ""}</td>
         <td data-label="Account">${escapeHtml(e.account || "")}</td>
         <td data-label="Note">${escapeHtml(e.note || "")}</td>
         <td class="row-actions">
