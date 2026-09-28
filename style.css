@@ -96,7 +96,7 @@ body.track-closed .row-actions .btn-danger { display: none; }
   .custom-range select { flex: 1; }
 }
 
-select, input[type="text"], input[type="number"], input[type="date"] {
+select, input[type="text"], input[type="number"], input[type="date"], input[type="month"] {
   font-family: inherit;
   font-size: 14px;
   height: 38px;
@@ -355,6 +355,36 @@ tbody tr:hover { background: #f9f8fe; }
 .modal-content select { width: 100%; margin-top: 8px; }
 .modal-preview { font-size: 13px; color: var(--text-muted); margin-top: 12px; white-space: pre-line; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+.recurring-content { width: 560px; max-height: 90vh; overflow-y: auto; }
+.recurring-content input[type="text"],
+.recurring-content input[type="number"],
+.recurring-content input[type="month"] { width: 100%; box-sizing: border-box; }
+
+.recurring-list { list-style: none; margin: 12px 0 0; padding: 0; }
+.recurring-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.recurring-item.paused .recurring-main { opacity: 0.5; }
+.recurring-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; }
+.recurring-sub { font-size: 12px; color: var(--text-muted); }
+.recurring-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.recurring-form { margin-top: 18px; }
+.recurring-form h3 { margin: 0 0 10px; font-size: 15px; }
+.recurring-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.recurring-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.recurring-grid select { margin-top: 0; }
+
+@media (max-width: 600px) {
+  .recurring-grid { grid-template-columns: 1fr; }
+  .recurring-item { flex-direction: column; align-items: flex-start; }
+  .recurring-content input[type="month"] { font-size: 16px; height: 44px; }
+}
 
 .toast {
   position: fixed;

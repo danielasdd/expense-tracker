@@ -254,6 +254,7 @@
       await refreshCurrentTrackData();
       renderTrackSelect();
       renderAll();
+      await applyRecurring();
     } catch (err) {
       toast("Could not load your data: " + err.message);
     }
@@ -1136,11 +1137,260 @@
     importModal.classList.add("hidden");
   });
 
+  // ---------- recurring transactions ----------
+
+  const recurring = { rules: [], editId: null, generating: false };
+
+  const recurringModal = document.getElementById("recurringModal");
+  const recurringForm = document.getElementById("recurringForm");
+  const recurringList = document.getElementById("recurringList");
+  const recurringEmpty = document.getElementById("recurringEmpty");
+  const recurringSaveBtn = document.getElementById("recurringSaveBtn");
+  const recurringCancelEditBtn = document.getElementById("recurringCancelEditBtn");
+  const recurringFormTitle = document.getElementById("recurringFormTitle");
+
+  function shiftMonth(ym, delta) {
+    const [y, m] = ym.split("-").map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+  }
+
+  // Day N of month ym, clamped to the month's last day (31 -> 30/28/29).
+  function occurrenceDate(ym, day) {
+    const [y, m] = ym.split("-").map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    return ym + "-" + String(Math.min(day, lastDay)).padStart(2, "0");
+  }
+
+  // Creates any due-but-missing transactions for every active rule, in the
+  // General track. Safe to call repeatedly and from several devices: the
+  // (recurring_id, recurring_month) unique constraint ignores duplicates.
+  // Returns how many new transactions were created.
+  async function generateRecurring() {
+    if (recurring.generating || !state.session) return 0;
+    recurring.generating = true;
+    try {
+      const { data: rules, error } = await sb.from("recurring").select("*").order("created_at");
+      if (error) throw error;
+      recurring.rules = rules || [];
+
+      const general = state.tracks.find((t) => t.is_general);
+      if (!general) return 0;
+      const today = todayISO();
+      const thisMonth = today.slice(0, 7);
+      let created = 0;
+
+      for (const rule of recurring.rules) {
+        if (!rule.active) continue;
+        let month = rule.last_generated_month ? shiftMonth(rule.last_generated_month, 1) : rule.start_month;
+        if (month < rule.start_month) month = rule.start_month;
+        let lastDone = null;
+
+        while (month <= thisMonth && (!rule.end_month || month <= rule.end_month)) {
+          const date = occurrenceDate(month, rule.day_of_month);
+          if (date > today) break;
+          const { data, error: insErr } = await sb.from("expenses")
+            .upsert({
+              amount: Number(rule.amount),
+              category: rule.category,
+              date,
+              note: rule.note || "",
+              type: rule.type,
+              account: rule.account || "",
+              track_id: general.id,
+              user_id: state.session.user.id,
+              recurring_id: rule.id,
+              recurring_month: month,
+            }, { onConflict: "recurring_id,recurring_month", ignoreDuplicates: true })
+            .select();
+          if (insErr) throw insErr;
+          if (data && data.length) created++;
+          lastDone = month;
+          month = shiftMonth(month, 1);
+        }
+
+        if (lastDone) {
+          const { error: updErr } = await sb.from("recurring").update({ last_generated_month: lastDone }).eq("id", rule.id);
+          if (updErr) throw updErr;
+          rule.last_generated_month = lastDone;
+        }
+      }
+      return created;
+    } catch (err) {
+      console.error("Recurring generation failed", err);
+      return 0;
+    } finally {
+      recurring.generating = false;
+    }
+  }
+
+  // Generate, then refresh what's on screen if anything new landed in the
+  // track being viewed.
+  async function applyRecurring() {
+    const created = await generateRecurring();
+    if (created) {
+      const general = state.tracks.find((t) => t.is_general);
+      if (general && state.currentTrackId === general.id) {
+        await refreshCurrentTrackData();
+        renderAll();
+      }
+      toast(`Added ${created} recurring transaction${created === 1 ? "" : "s"}.`);
+    }
+    if (!recurringModal.classList.contains("hidden")) renderRecurring();
+  }
+
+  function renderRecurring() {
+    recurringEmpty.classList.toggle("hidden", recurring.rules.length > 0);
+    recurringList.innerHTML = recurring.rules.map((r) => {
+      const range = r.start_month + (r.end_month ? " → " + r.end_month : " →");
+      const sub = [`day ${r.day_of_month}`, r.account, range, r.active ? "" : "paused"].filter(Boolean).join(" · ");
+      return `<li class="recurring-item${r.active ? "" : " paused"}">
+        <div class="recurring-main">
+          <span><strong>${fmtMoney(r.amount)}</strong> ${escapeHtml(r.type)} · ${escapeHtml(r.category)}${r.note ? " — " + escapeHtml(r.note) : ""}</span>
+          <span class="recurring-sub">${escapeHtml(sub)}</span>
+        </div>
+        <div class="recurring-actions">
+          <button type="button" class="btn btn-icon" data-act="toggle" data-id="${r.id}">${r.active ? "Pause" : "Resume"}</button>
+          <button type="button" class="btn btn-icon" data-act="edit" data-id="${r.id}">Edit</button>
+          <button type="button" class="btn btn-danger" data-act="delete" data-id="${r.id}">Delete</button>
+        </div>
+      </li>`;
+    }).join("");
+  }
+
+  function resetRecurringForm() {
+    recurring.editId = null;
+    recurringForm.reset();
+    document.getElementById("recStart").value = todayISO().slice(0, 7);
+    recurringFormTitle.textContent = "Add recurring";
+    recurringSaveBtn.textContent = "Add";
+    recurringCancelEditBtn.classList.add("hidden");
+  }
+
+  function fillRecurringDatalists() {
+    const cats = new Set(PRESET_CATEGORIES);
+    const accs = new Set(PRESET_ACCOUNTS);
+    recurring.rules.forEach((r) => { cats.add(r.category); if (r.account) accs.add(r.account); });
+    state.data.forEach((e) => { if (e.category) cats.add(e.category); if (e.account) accs.add(e.account); });
+    const opts = (set) => [...set].sort().map((v) => `<option value="${escapeHtml(v)}"></option>`).join("");
+    document.getElementById("recCategoryList").innerHTML = opts(cats);
+    document.getElementById("recAccountList").innerHTML = opts(accs);
+  }
+
+  document.getElementById("recurringBtn").addEventListener("click", async () => {
+    recurringModal.classList.remove("hidden");
+    resetRecurringForm();
+    fillRecurringDatalists();
+    renderRecurring();
+    try {
+      const { data, error } = await sb.from("recurring").select("*").order("created_at");
+      if (error) throw error;
+      recurring.rules = data || [];
+      fillRecurringDatalists();
+      renderRecurring();
+    } catch (err) {
+      toast("Could not load recurring transactions: " + err.message);
+    }
+  });
+
+  document.getElementById("recurringCloseBtn").addEventListener("click", () => {
+    recurringModal.classList.add("hidden");
+  });
+
+  recurringCancelEditBtn.addEventListener("click", resetRecurringForm);
+
+  recurringForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      type: document.getElementById("recType").value,
+      amount: parseFloat(document.getElementById("recAmount").value),
+      category: document.getElementById("recCategory").value.trim(),
+      account: document.getElementById("recAccount").value.trim(),
+      note: document.getElementById("recNote").value.trim(),
+      day_of_month: parseInt(document.getElementById("recDay").value, 10),
+      start_month: document.getElementById("recStart").value,
+      end_month: document.getElementById("recEnd").value || null,
+    };
+    if (!(payload.amount > 0) || !payload.category || !(payload.day_of_month >= 1 && payload.day_of_month <= 31) || !payload.start_month) {
+      toast("Please fill in amount, category, day (1-31) and start month.");
+      return;
+    }
+    if (payload.end_month && payload.end_month < payload.start_month) {
+      toast("The end month can't be before the start month.");
+      return;
+    }
+
+    recurringSaveBtn.disabled = true;
+    try {
+      if (recurring.editId) {
+        const { error } = await sb.from("recurring").update(payload).eq("id", recurring.editId);
+        if (error) throw error;
+        toast("Recurring transaction updated.");
+      } else {
+        const { error } = await sb.from("recurring").insert({ ...payload, user_id: state.session.user.id });
+        if (error) throw error;
+        toast("Recurring transaction added.");
+      }
+      resetRecurringForm();
+      await applyRecurring();
+    } catch (err) {
+      toast("Could not save: " + err.message);
+    } finally {
+      recurringSaveBtn.disabled = false;
+    }
+  });
+
+  recurringList.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-act]");
+    if (!btn) return;
+    const rule = recurring.rules.find((r) => r.id === btn.dataset.id);
+    if (!rule) return;
+
+    try {
+      if (btn.dataset.act === "edit") {
+        recurring.editId = rule.id;
+        document.getElementById("recType").value = rule.type;
+        document.getElementById("recAmount").value = rule.amount;
+        document.getElementById("recCategory").value = rule.category;
+        document.getElementById("recAccount").value = rule.account || "";
+        document.getElementById("recNote").value = rule.note || "";
+        document.getElementById("recDay").value = rule.day_of_month;
+        document.getElementById("recStart").value = rule.start_month;
+        document.getElementById("recEnd").value = rule.end_month || "";
+        recurringFormTitle.textContent = "Edit recurring";
+        recurringSaveBtn.textContent = "Save changes";
+        recurringCancelEditBtn.classList.remove("hidden");
+        recurringForm.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      } else if (btn.dataset.act === "toggle") {
+        const update = { active: !rule.active };
+        if (update.active) {
+          // Resuming skips the months that were paused instead of backfilling them.
+          const prev = shiftMonth(todayISO().slice(0, 7), -1);
+          if (!rule.last_generated_month || rule.last_generated_month < prev) update.last_generated_month = prev;
+        }
+        const { error } = await sb.from("recurring").update(update).eq("id", rule.id);
+        if (error) throw error;
+        await applyRecurring();
+      } else if (btn.dataset.act === "delete") {
+        if (!confirm("Delete this recurring rule? Transactions it already created are kept.")) return;
+        const { error } = await sb.from("recurring").delete().eq("id", rule.id);
+        if (error) throw error;
+        if (recurring.editId === rule.id) resetRecurringForm();
+        recurring.rules = recurring.rules.filter((r) => r.id !== rule.id);
+        renderRecurring();
+        toast("Recurring transaction deleted.");
+      }
+    } catch (err) {
+      toast("Could not update: " + err.message);
+    }
+  });
+
   // ---------- background refresh ----------
 
   async function refreshOnFocus() {
     if (!state.session || !state.currentTrackId || state.editId) return;
     try {
+      await applyRecurring();
       await refreshCurrentTrackData();
       renderAll();
     } catch (err) {

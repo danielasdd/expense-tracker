@@ -55,6 +55,7 @@
       <input type="file" id="restoreInput" accept="application/json" hidden>
     </label>
     <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
+    <button id="recurringBtn" class="btn btn-tool btn-tool-primary">Recurring</button>
   </div>
 
   <div class="range-bar">
@@ -232,6 +233,59 @@
     <div class="modal-actions">
       <button class="btn btn-ghost" id="importCancelBtn">Cancel</button>
       <button class="btn btn-primary" id="importConfirmBtn">Import</button>
+    </div>
+  </div>
+</div>
+
+<div id="recurringModal" class="modal hidden">
+  <div class="modal-content recurring-content">
+    <h2>Recurring Transactions</h2>
+    <p class="modal-preview">Added to the General track automatically each month, the first time you open the app on or after the day.</p>
+    <ul id="recurringList" class="recurring-list"></ul>
+    <p class="empty-note hidden" id="recurringEmpty">No recurring transactions yet.</p>
+
+    <form id="recurringForm" class="recurring-form">
+      <h3 id="recurringFormTitle">Add recurring</h3>
+      <div class="recurring-grid">
+        <label>Type
+          <select id="recType">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+            <option value="investment">Investment</option>
+          </select>
+        </label>
+        <label>Amount (€)
+          <input type="number" id="recAmount" step="0.01" min="0" required placeholder="0.00">
+        </label>
+        <label>Category
+          <input type="text" id="recCategory" list="recCategoryList" required placeholder="e.g. Ordenado">
+          <datalist id="recCategoryList"></datalist>
+        </label>
+        <label>Account
+          <input type="text" id="recAccount" list="recAccountList" placeholder="e.g. Novo Banco">
+          <datalist id="recAccountList"></datalist>
+        </label>
+        <label>Day of month
+          <input type="number" id="recDay" min="1" max="31" step="1" required placeholder="1-31">
+        </label>
+        <label>Note
+          <input type="text" id="recNote" placeholder="Optional description">
+        </label>
+        <label>Starts
+          <input type="month" id="recStart" required>
+        </label>
+        <label>Ends (optional)
+          <input type="month" id="recEnd">
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost hidden" id="recurringCancelEditBtn">Cancel edit</button>
+        <button type="submit" class="btn btn-primary" id="recurringSaveBtn">Add</button>
+      </div>
+    </form>
+
+    <div class="modal-actions">
+      <button type="button" class="btn btn-ghost" id="recurringCloseBtn">Close</button>
     </div>
   </div>
 </div>
