@@ -1436,6 +1436,35 @@
     }
   });
 
+  // ---------- close modals: Escape key / click outside ----------
+
+  // Each modal's × button already has the right close handler, so reuse it.
+  const MODAL_CLOSE_BUTTONS = { importModal: "importCancelBtn", recurringModal: "recurringCloseBtn" };
+
+  function closeModal(modalEl) {
+    const btn = document.getElementById(MODAL_CLOSE_BUTTONS[modalEl.id]);
+    if (btn) btn.click();
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    const open = Object.keys(MODAL_CLOSE_BUTTONS)
+      .map((id) => document.getElementById(id))
+      .filter((m) => m && !m.classList.contains("hidden"));
+    if (open.length) closeModal(open[open.length - 1]);
+  });
+
+  // Only close when the press *and* release both land on the backdrop, so
+  // selecting text inside a window and letting go outside doesn't close it.
+  let backdropPressed = null;
+  document.addEventListener("mousedown", (e) => {
+    backdropPressed = e.target.classList.contains("modal") ? e.target : null;
+  });
+  document.addEventListener("click", (e) => {
+    if (backdropPressed && e.target === backdropPressed) closeModal(backdropPressed);
+    backdropPressed = null;
+  });
+
   // ---------- background refresh ----------
 
   async function refreshOnFocus() {
