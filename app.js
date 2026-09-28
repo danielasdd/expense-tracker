@@ -917,7 +917,7 @@
         <td data-label="Date">${e.date}</td>
         <td class="amount-${e.type}" data-label="Amount">${fmtMoney(e.amount)}</td>
         <td data-label="Category">${escapeHtml(e.category)}</td>
-        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span>${e.recurring ? ` <span class="recurring-badge" title="Created automatically by a recurring rule">↻ monthly</span>` : ""}</td>
+        <td data-label="Type"><span class="type-badge ${e.type}">${e.type}</span>${e.recurring ? ` <span class="recurring-badge" title="Created automatically by a monthly transaction">↻ monthly</span>` : ""}</td>
         <td data-label="Account">${escapeHtml(e.account || "")}</td>
         <td data-label="Note">${escapeHtml(e.note || "")}</td>
         <td class="row-actions">
@@ -1249,9 +1249,9 @@
         await refreshCurrentTrackData();
         renderAll();
       }
-      toast(`Added ${created} recurring transaction${created === 1 ? "" : "s"}.`);
+      toast(`Added ${created} monthly transaction${created === 1 ? "" : "s"}.`);
     }
-    if (!recurringModal.classList.contains("hidden")) renderRecurring();
+    renderRecurring();
   }
 
   function renderRecurring() {
@@ -1277,7 +1277,7 @@
     recurring.editId = null;
     recurringForm.reset();
     document.getElementById("recStart").value = todayISO().slice(0, 7);
-    recurringFormTitle.textContent = "Add recurring";
+    recurringFormTitle.textContent = "Add Monthly Transaction";
     recurringSaveBtn.textContent = "Add";
     recurringCancelEditBtn.classList.add("hidden");
   }
@@ -1343,12 +1343,25 @@
       fillRecurringSelects();
       renderRecurring();
     } catch (err) {
-      toast("Could not load recurring transactions: " + err.message);
+      toast("Could not load monthly transactions: " + err.message);
     }
   });
 
   document.getElementById("recurringCloseBtn").addEventListener("click", () => {
     recurringModal.classList.add("hidden");
+    monthlyListModal.classList.add("hidden");
+  });
+
+  // The full list (pause / edit / delete) lives in its own window on top.
+  const monthlyListModal = document.getElementById("monthlyListModal");
+
+  document.getElementById("allMonthlyBtn").addEventListener("click", () => {
+    renderRecurring();
+    monthlyListModal.classList.remove("hidden");
+  });
+
+  document.getElementById("monthlyListCloseBtn").addEventListener("click", () => {
+    monthlyListModal.classList.add("hidden");
   });
 
   recurringCancelEditBtn.addEventListener("click", resetRecurringForm);
@@ -1379,11 +1392,11 @@
       if (recurring.editId) {
         const { error } = await sb.from("recurring").update(payload).eq("id", recurring.editId);
         if (error) throw error;
-        toast("Recurring transaction updated.");
+        toast("Monthly transaction updated.");
       } else {
         const { error } = await sb.from("recurring").insert({ ...payload, user_id: state.session.user.id });
         if (error) throw error;
-        toast("Recurring transaction added.");
+        toast("Monthly transaction added.");
       }
       resetRecurringForm();
       await applyRecurring();
@@ -1411,9 +1424,11 @@
         document.getElementById("recDay").value = rule.day_of_month;
         document.getElementById("recStart").value = rule.start_month;
         document.getElementById("recEnd").value = rule.end_month || "";
-        recurringFormTitle.textContent = "Edit recurring";
+        recurringFormTitle.textContent = "Edit Monthly Transaction";
         recurringSaveBtn.textContent = "Save changes";
         recurringCancelEditBtn.classList.remove("hidden");
+        // Editing happens in the form of the main Monthly window, so close the list.
+        monthlyListModal.classList.add("hidden");
         recurringForm.scrollIntoView({ behavior: "smooth", block: "nearest" });
       } else if (btn.dataset.act === "toggle") {
         const update = { active: !rule.active };
@@ -1426,13 +1441,13 @@
         if (error) throw error;
         await applyRecurring();
       } else if (btn.dataset.act === "delete") {
-        if (!confirm("Delete this recurring rule? Transactions it already created are kept.")) return;
+        if (!confirm("Delete this monthly transaction? Transactions it already created are kept.")) return;
         const { error } = await sb.from("recurring").delete().eq("id", rule.id);
         if (error) throw error;
         if (recurring.editId === rule.id) resetRecurringForm();
         recurring.rules = recurring.rules.filter((r) => r.id !== rule.id);
         renderRecurring();
-        toast("Recurring transaction deleted.");
+        toast("Monthly transaction deleted.");
       }
     } catch (err) {
       toast("Could not update: " + err.message);
@@ -1525,7 +1540,13 @@
   // ---------- close modals: Escape key / click outside ----------
 
   // Each modal's × button already has the right close handler, so reuse it.
-  const MODAL_CLOSE_BUTTONS = { importModal: "importCancelBtn", recurringModal: "recurringCloseBtn" };
+  // Order matters: Escape closes the last open one, so windows that open on
+  // top of another (the Monthly list) come after it.
+  const MODAL_CLOSE_BUTTONS = {
+    importModal: "importCancelBtn",
+    recurringModal: "recurringCloseBtn",
+    monthlyListModal: "monthlyListCloseBtn",
+  };
 
   function closeModal(modalEl) {
     const btn = document.getElementById(MODAL_CLOSE_BUTTONS[modalEl.id]);

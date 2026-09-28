@@ -63,7 +63,7 @@
       <input type="file" id="restoreInput" accept="application/json" hidden>
     </label>
     <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
-    <button id="recurringBtn" class="btn btn-tool btn-tool-primary">Recurring</button>
+    <button id="recurringBtn" class="btn btn-tool btn-tool-primary">Monthly Transactions</button>
   </div>
 
   <div class="range-bar">
@@ -205,7 +205,7 @@
           </select>
           <select id="sourceFilter">
             <option value="">All Entries</option>
-            <option value="recurring">Recurring only</option>
+            <option value="recurring">Monthly only</option>
             <option value="manual">Manual only</option>
           </select>
           <input type="text" id="searchInput" placeholder="Search note or category...">
@@ -255,16 +255,15 @@
 <div id="recurringModal" class="modal hidden">
   <div class="modal-content recurring-content">
     <div class="modal-header">
-      <h2>Recurring Transactions</h2>
+      <h2>Monthly Transactions</h2>
       <button type="button" class="modal-close" id="recurringCloseBtn" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
     <p class="modal-preview">Added to the General track automatically each month, the first time you open the app on or after the day.</p>
-    <ul id="recurringList" class="recurring-list"></ul>
-    <p class="empty-note hidden" id="recurringEmpty">No recurring transactions yet.</p>
+    <button type="button" class="btn btn-secondary btn-block" id="allMonthlyBtn">All Monthly Transactions</button>
 
     <form id="recurringForm" class="recurring-form">
-      <h3 id="recurringFormTitle">Add recurring</h3>
+      <h3 id="recurringFormTitle">Add Monthly Transaction</h3>
       <div class="recurring-grid">
         <label>Type
           <select id="recType">
@@ -305,6 +304,19 @@
       </div>
     </form>
     </div><!-- .modal-body -->
+  </div>
+</div>
+
+<div id="monthlyListModal" class="modal hidden">
+  <div class="modal-content recurring-content">
+    <div class="modal-header">
+      <h2>All Monthly Transactions</h2>
+      <button type="button" class="modal-close" id="monthlyListCloseBtn" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <ul id="recurringList" class="recurring-list"></ul>
+      <p class="empty-note hidden" id="recurringEmpty">No monthly transactions yet.</p>
+    </div>
   </div>
 </div>
 
