@@ -129,15 +129,12 @@
 
   <div id="tab-dashboard" class="tab-pane hidden" role="tabpanel">
     <div class="range-bar">
-      <label class="range-label">
-        Range:
-        <select id="rangeSelect">
-          <option value="all">All time</option>
-          <option value="year">This year</option>
-          <option value="month" selected>This month</option>
-          <option value="custom">Custom</option>
-        </select>
-      </label>
+      <select id="rangeSelect" aria-label="Range">
+        <option value="all">All time</option>
+        <option value="year">This year</option>
+        <option value="month" selected>This month</option>
+        <option value="custom">Custom</option>
+      </select>
       <div id="customRange" class="custom-range hidden">
         <label class="range-label">
           Day:
@@ -152,20 +149,14 @@
           <select id="yearFilter"></select>
         </label>
       </div>
-      <label class="range-label">
-        Category:
-        <select id="dashCategoryFilter">
-          <option value="">All Categories</option>
-        </select>
-      </label>
-      <label class="range-label">
-        Entries:
-        <select id="dashSourceFilter">
-          <option value="">All Entries</option>
-          <option value="recurring">Monthly only</option>
-          <option value="manual">Manual only</option>
-        </select>
-      </label>
+      <select id="dashCategoryFilter" aria-label="Category">
+        <option value="">All Categories</option>
+      </select>
+      <select id="dashSourceFilter" aria-label="Entries">
+        <option value="">All Entries</option>
+        <option value="recurring">Monthly only</option>
+        <option value="manual">Manual only</option>
+      </select>
     </div>
     <p id="dashFilterNote" class="dash-filter-note hidden">
       <span id="dashFilterNoteText"></span>

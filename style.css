@@ -176,12 +176,15 @@ body.track-closed .row-actions .btn-danger { display: none; }
 .dash-filter-note .btn { padding: 3px 10px; min-height: 0; font-size: 12px; }
 
 .tab-pane.hidden { display: none; }
-.tab-pane .range-bar { border-top: none; padding-top: 0; margin-bottom: 16px; }
-/* Range and Category are direct children (the conditional day/month/year
-   trio lives one level deeper, in .custom-range, so ">" leaves it alone and
-   those stay their normal compact size). */
-.tab-pane .range-bar > .range-label { flex: 1 1 220px; }
-.tab-pane .range-bar > .range-label select { width: 100%; }
+/* Same compact, natural-width layout as the Transactions filter bar
+   (.table-filters) — plain selects, no stretching, no visible labels (the
+   conditional day/month/year trio lives one level deeper, in .custom-range,
+   and keeps its own small labels since those values aren't self-explanatory). */
+.tab-pane .range-bar { border-top: none; padding-top: 0; margin-bottom: 16px; gap: 8px; }
+
+@media (max-width: 600px) {
+  #rangeSelect, #dashCategoryFilter, #dashSourceFilter { flex: 1 1 auto; }
+}
 .form-panel { max-width: 520px; }
 .form-panel .btn-block { margin-top: 18px; }
 
@@ -434,7 +437,7 @@ tbody tr:hover { background: #f9f8fe; }
   white-space: nowrap;
   background: #e8e1e8;
   color: #663466;
-  margin-right: 5mm; /* gap to the type badge sitting right after it */
+  margin-right: 2mm; /* gap to the type badge sitting right after it */
 }
 
 .row-actions { display: flex; gap: 6px; }
