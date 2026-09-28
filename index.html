@@ -152,7 +152,17 @@
           <select id="yearFilter"></select>
         </label>
       </div>
+      <label class="range-label">
+        Category:
+        <select id="dashCategoryFilter">
+          <option value="">All Categories</option>
+        </select>
+      </label>
     </div>
+    <p id="dashFilterNote" class="dash-filter-note hidden">
+      <span id="dashFilterNoteText"></span>
+      <button type="button" class="btn btn-ghost" id="dashFilterNoteClear">Clear</button>
+    </p>
 
     <section class="panel dashboard-panel">
       <h2>Dashboard</h2>

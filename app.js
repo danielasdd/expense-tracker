@@ -159,6 +159,12 @@
       sortedCats.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
     categoryFilterEl.value = sortedCats.includes(currentFilterValue) ? currentFilterValue : "";
 
+    // The Dashboard's category filter shows the same options and shares the
+    // same setting as the one above the transactions table.
+    const dashCategoryEl = document.getElementById("dashCategoryFilter");
+    dashCategoryEl.innerHTML = categoryFilterEl.innerHTML;
+    dashCategoryEl.value = categoryFilterEl.value;
+
     const accountFilterEl = document.getElementById("accountFilter");
     const currentAccountFilterValue = accountFilterEl.value;
     accountFilterEl.innerHTML =
@@ -752,6 +758,7 @@
   }
 
   function renderDashboard() {
+    updateDashFilterNote();
     const filtered = filterByRange(state.data).filter(matchesFilters);
     const expenses = filtered.filter((e) => e.type === "expense");
     const income = filtered.filter((e) => e.type === "income");
@@ -872,11 +879,18 @@
   });
 
   const categoryFilter = document.getElementById("categoryFilter");
-  categoryFilter.addEventListener("change", () => {
-    state.categoryFilterValue = categoryFilter.value;
+  const dashCategoryFilter = document.getElementById("dashCategoryFilter");
+
+  // One category filter, two dropdowns (Dashboard and Transactions) kept in step.
+  function setCategoryFilter(value) {
+    state.categoryFilterValue = value;
+    categoryFilter.value = value;
+    dashCategoryFilter.value = value;
     renderTable();
     renderDashboard();
-  });
+  }
+  categoryFilter.addEventListener("change", () => setCategoryFilter(categoryFilter.value));
+  dashCategoryFilter.addEventListener("change", () => setCategoryFilter(dashCategoryFilter.value));
 
   const typeFilter = document.getElementById("typeFilter");
   typeFilter.addEventListener("change", () => {
@@ -907,12 +921,35 @@
     state.sourceFilterValue = "";
     searchInput.value = "";
     categoryFilter.value = "";
+    dashCategoryFilter.value = "";
     typeFilter.value = "";
     accountFilter.value = "";
     sourceFilter.value = "";
     renderTable();
     renderDashboard();
   });
+
+  // Type / account / source filters live in the Transactions tab but also shape
+  // the Dashboard; say so on the Dashboard so its numbers aren't a mystery.
+  document.getElementById("dashFilterNoteClear").addEventListener("click", () => {
+    state.typeFilterValue = "";
+    state.accountFilterValue = "";
+    state.sourceFilterValue = "";
+    typeFilter.value = "";
+    accountFilter.value = "";
+    sourceFilter.value = "";
+    renderTable();
+    renderDashboard();
+  });
+
+  function updateDashFilterNote() {
+    const parts = [];
+    if (state.typeFilterValue) parts.push("Type: " + state.typeFilterValue);
+    if (state.accountFilterValue) parts.push("Account: " + state.accountFilterValue);
+    if (state.sourceFilterValue) parts.push(state.sourceFilterValue === "recurring" ? "Monthly only" : "Manual only");
+    document.getElementById("dashFilterNote").classList.toggle("hidden", parts.length === 0);
+    document.getElementById("dashFilterNoteText").textContent = parts.length ? "Also filtered from Transactions — " + parts.join(", ") : "";
+  }
 
   document.querySelectorAll("#expenseTable thead th[data-sort]").forEach((th) => {
     th.addEventListener("click", () => {

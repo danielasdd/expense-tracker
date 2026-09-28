@@ -115,12 +115,49 @@ body.track-closed .row-actions .btn-danger { display: none; }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 .tab-short { display: none; }
 
+/* On phones the tabs become a bottom bar, like a native app. */
 @media (max-width: 600px) {
   .track-bar { width: 100%; }
-  .tab-btn { font-size: 13px; padding: 11px 2px; }
+  .tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    gap: 0;
+    margin: 0;
+    background: var(--panel);
+    border-bottom: none;
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 8px rgba(16, 24, 40, 0.06);
+    padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .tab-btn {
+    font-size: 13px;
+    min-height: 56px;
+    padding: 8px 2px;
+    margin: 0;
+    border-bottom: none;
+    border-top: 3px solid transparent;
+  }
+  .tab-btn.active { border-top-color: var(--primary); }
+  .tab-btn:hover { background: transparent; }
   .tab-long { display: none; }
   .tab-short { display: inline; }
+  /* keep the last content clear of the bar */
+  .app { padding-bottom: calc(84px + env(safe-area-inset-bottom)); }
 }
+
+.dash-filter-note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -4px 0 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.dash-filter-note .btn { padding: 3px 10px; min-height: 0; font-size: 12px; }
 
 .tab-pane.hidden { display: none; }
 .tab-pane .range-bar { border-top: none; padding-top: 0; margin-bottom: 16px; }
@@ -519,6 +556,11 @@ body:has(.modal:not(.hidden)) { overflow: hidden; }
   gap: 14px;
 }
 .toast.hidden { display: none; }
+
+@media (max-width: 600px) {
+  /* sit above the bottom tab bar */
+  .toast { bottom: calc(72px + env(safe-area-inset-bottom)); max-width: calc(100vw - 24px); }
+}
 
 .toast-action {
   background: none;
