@@ -169,22 +169,13 @@ body.track-closed .row-actions .btn-danger { display: none; }
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  margin: -4px 0 14px;
+  margin: 0 0 14px;
   font-size: 13px;
   color: var(--text-muted);
 }
 .dash-filter-note .btn { padding: 3px 10px; min-height: 0; font-size: 12px; }
 
 .tab-pane.hidden { display: none; }
-/* Same compact, natural-width layout as the Transactions filter bar
-   (.table-filters) — plain selects, no stretching, no visible labels (the
-   conditional day/month/year trio lives one level deeper, in .custom-range,
-   and keeps its own small labels since those values aren't self-explanatory). */
-.tab-pane .range-bar { border-top: none; padding-top: 0; margin-bottom: 16px; gap: 8px; }
-
-@media (max-width: 600px) {
-  #rangeSelect, #dashCategoryFilter, #dashSourceFilter { flex: 1 1 auto; }
-}
 .form-panel { max-width: 520px; }
 .form-panel .btn-block { margin-top: 18px; }
 
@@ -202,21 +193,10 @@ body.track-closed .row-actions .btn-danger { display: none; }
 
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
 
-.range-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 14px;
-  margin-bottom: 24px;
-  border-top: 1px solid var(--border);
-}
-
 @media (max-width: 600px) {
   .toolbar { gap: 8px; }
   .toolbar .btn, .toolbar .file-label { flex: 1 1 auto; }
 
-  .range-bar { width: 100%; }
   .range-label { width: 100%; }
   .range-label select { flex: 1; }
 }
@@ -386,8 +366,9 @@ input[type="month"]::-webkit-date-and-time-value { text-align: left; min-height:
 @media (max-width: 600px) {
   .table-filters { width: 100%; }
   .table-header input { min-width: 0; flex: 1 1 auto; }
-  #categoryFilter, #typeFilter, #sourceFilter { flex: 1 1 auto; }
-  #clearFiltersBtn { flex: 1 1 100%; }
+  #categoryFilter, #typeFilter, #sourceFilter,
+  #rangeSelect, #dashCategoryFilter, #dashSourceFilter { flex: 1 1 auto; }
+  #clearFiltersBtn, #dashClearFiltersBtn { flex: 1 1 100%; }
 }
 
 .table-wrap { overflow-x: auto; }

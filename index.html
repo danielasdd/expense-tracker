@@ -128,43 +128,45 @@
   </div>
 
   <div id="tab-dashboard" class="tab-pane hidden" role="tabpanel">
-    <div class="range-bar">
-      <select id="rangeSelect" aria-label="Range">
-        <option value="all">All time</option>
-        <option value="year">This year</option>
-        <option value="month" selected>This month</option>
-        <option value="custom">Custom</option>
-      </select>
-      <div id="customRange" class="custom-range hidden">
-        <label class="range-label">
-          Day:
-          <select id="dayFilter"></select>
-        </label>
-        <label class="range-label">
-          Month:
-          <select id="monthFilter"></select>
-        </label>
-        <label class="range-label">
-          Year:
-          <select id="yearFilter"></select>
-        </label>
-      </div>
-      <select id="dashCategoryFilter" aria-label="Category">
-        <option value="">All Categories</option>
-      </select>
-      <select id="dashSourceFilter" aria-label="Entries">
-        <option value="">All Entries</option>
-        <option value="recurring">Monthly only</option>
-        <option value="manual">Manual only</option>
-      </select>
-    </div>
-    <p id="dashFilterNote" class="dash-filter-note hidden">
-      <span id="dashFilterNoteText"></span>
-      <button type="button" class="btn btn-ghost" id="dashFilterNoteClear">Clear</button>
-    </p>
-
     <section class="panel dashboard-panel">
-      <h2>Dashboard</h2>
+      <div class="table-header">
+        <h2>Dashboard</h2>
+        <div class="table-filters">
+          <select id="rangeSelect" aria-label="Range">
+            <option value="all">All time</option>
+            <option value="year">This year</option>
+            <option value="month" selected>This month</option>
+            <option value="custom">Custom</option>
+          </select>
+          <div id="customRange" class="custom-range hidden">
+            <label class="range-label">
+              Day:
+              <select id="dayFilter"></select>
+            </label>
+            <label class="range-label">
+              Month:
+              <select id="monthFilter"></select>
+            </label>
+            <label class="range-label">
+              Year:
+              <select id="yearFilter"></select>
+            </label>
+          </div>
+          <select id="dashCategoryFilter" aria-label="Category">
+            <option value="">All Categories</option>
+          </select>
+          <select id="dashSourceFilter" aria-label="Entries">
+            <option value="">All Entries</option>
+            <option value="recurring">Monthly only</option>
+            <option value="manual">Manual only</option>
+          </select>
+          <button type="button" class="btn btn-ghost" id="dashClearFiltersBtn">Clear Filters</button>
+        </div>
+      </div>
+      <p id="dashFilterNote" class="dash-filter-note hidden">
+        <span id="dashFilterNoteText"></span>
+        <button type="button" class="btn btn-ghost" id="dashFilterNoteClear">Clear</button>
+      </p>
       <div class="stat-cards">
         <div class="stat-card">
           <span class="stat-label">Total Spending</span>

@@ -904,7 +904,9 @@
   sourceFilter.addEventListener("change", () => setSourceFilter(sourceFilter.value));
   dashSourceFilter.addEventListener("change", () => setSourceFilter(dashSourceFilter.value));
 
-  document.getElementById("clearFiltersBtn").addEventListener("click", () => {
+  // Shared by the Clear Filters button in both tabs — Range isn't part of
+  // this (it's not something either tab's Clear Filters ever reset).
+  function clearAllFilters() {
     state.search = "";
     state.categoryFilterValue = "";
     state.typeFilterValue = "";
@@ -917,7 +919,9 @@
     dashSourceFilter.value = "";
     renderTable();
     renderDashboard();
-  });
+  }
+  document.getElementById("clearFiltersBtn").addEventListener("click", clearAllFilters);
+  document.getElementById("dashClearFiltersBtn").addEventListener("click", clearAllFilters);
 
   // The Type filter lives only in the Transactions tab but also shapes the
   // Dashboard; say so on the Dashboard so its numbers aren't a mystery.
