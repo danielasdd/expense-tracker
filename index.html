@@ -54,43 +54,7 @@
     </div>
   </div>
 
-  <div class="toolbar">
-    <button id="importBtn" class="btn btn-tool btn-tool-primary">Import Excel</button>
-    <button id="exportExcelBtn" class="btn btn-tool btn-tool-rose">Export Excel</button>
-    <button id="exportBtn" class="btn btn-tool btn-tool-invest">Export JSON</button>
-    <label class="btn btn-tool btn-tool-purple file-label">
-      Restore JSON
-      <input type="file" id="restoreInput" accept="application/json" hidden>
-    </label>
-    <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
-    <button id="recurringBtn" class="btn btn-tool btn-tool-primary">Monthly Transactions</button>
-  </div>
-
-  <div class="range-bar">
-    <label class="range-label">
-      Range:
-      <select id="rangeSelect">
-        <option value="all">All time</option>
-        <option value="year">This year</option>
-        <option value="month" selected>This month</option>
-        <option value="custom">Custom</option>
-      </select>
-    </label>
-    <div id="customRange" class="custom-range hidden">
-      <label class="range-label">
-        Day:
-        <select id="dayFilter"></select>
-      </label>
-      <label class="range-label">
-        Month:
-        <select id="monthFilter"></select>
-      </label>
-      <label class="range-label">
-        Year:
-        <select id="yearFilter"></select>
-      </label>
-    </div>
-
+  <div class="track-bar">
     <label class="range-label">
       Track:
       <select id="trackSelect"></select>
@@ -100,8 +64,16 @@
     <button id="deleteTrackBtn" class="btn btn-tool btn-tool-danger hidden">Delete Track</button>
   </div>
 
-  <main class="layout">
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="add"><span class="tab-long">Add Expense</span><span class="tab-short">Add</span></button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="dashboard">Dashboard</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="transactions">Transactions</button>
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="tools">Tools</button>
+  </nav>
 
+  <main class="tab-panes">
+
+  <div id="tab-add" class="tab-pane" role="tabpanel">
     <section class="panel form-panel">
       <h2 id="formTitle">Add Expense</h2>
       <p id="closedTrackBanner" class="closed-banner">This track is closed. Reopen it to make changes.</p>
@@ -151,7 +123,36 @@
           <button type="button" class="btn btn-ghost hidden" id="cancelEditBtn">Cancel</button>
         </div>
       </form>
+      <button type="button" class="btn btn-tool btn-tool-primary btn-block" id="recurringBtn">Monthly Transactions</button>
     </section>
+  </div>
+
+  <div id="tab-dashboard" class="tab-pane hidden" role="tabpanel">
+    <div class="range-bar">
+      <label class="range-label">
+        Range:
+        <select id="rangeSelect">
+          <option value="all">All time</option>
+          <option value="year">This year</option>
+          <option value="month" selected>This month</option>
+          <option value="custom">Custom</option>
+        </select>
+      </label>
+      <div id="customRange" class="custom-range hidden">
+        <label class="range-label">
+          Day:
+          <select id="dayFilter"></select>
+        </label>
+        <label class="range-label">
+          Month:
+          <select id="monthFilter"></select>
+        </label>
+        <label class="range-label">
+          Year:
+          <select id="yearFilter"></select>
+        </label>
+      </div>
+    </div>
 
     <section class="panel dashboard-panel">
       <h2>Dashboard</h2>
@@ -186,7 +187,9 @@
         </div>
       </div>
     </section>
+  </div>
 
+  <div id="tab-transactions" class="tab-pane hidden" role="tabpanel">
     <section class="panel table-panel">
       <div class="table-header">
         <h2>All Transactions</h2>
@@ -227,9 +230,39 @@
           </thead>
           <tbody id="expenseTableBody"></tbody>
         </table>
-        <p class="empty-note hidden" id="tableEmpty">No transactions yet. Add one above, or import your Excel file.</p>
+        <p class="empty-note hidden" id="tableEmpty">No transactions yet. Add one in the Add Expense tab, or import an Excel file in Tools.</p>
       </div>
     </section>
+  </div>
+
+  <div id="tab-tools" class="tab-pane hidden" role="tabpanel">
+    <section class="panel tools-panel">
+      <h2>Tools</h2>
+      <p class="tools-note">Import, export and restore apply to the track selected above.</p>
+      <div class="tools-list">
+        <div class="tool-row">
+          <button id="importBtn" class="btn btn-tool btn-tool-primary">Import Excel</button>
+          <span class="tool-desc">Add transactions from an Excel file.</span>
+        </div>
+        <div class="tool-row">
+          <button id="exportExcelBtn" class="btn btn-tool btn-tool-rose">Export Excel</button>
+          <span class="tool-desc">Download the track as an Excel file.</span>
+        </div>
+        <div class="tool-row">
+          <button id="exportBtn" class="btn btn-tool btn-tool-invest">Export JSON</button>
+          <span class="tool-desc">Download a backup file of the track.</span>
+        </div>
+        <div class="tool-row">
+          <label class="btn btn-tool btn-tool-purple file-label">
+            Restore JSON
+            <input type="file" id="restoreInput" accept="application/json" hidden>
+          </label>
+          <span class="tool-desc">Replace the track's transactions with a backup file.</span>
+        </div>
+        <input type="file" id="importInput" accept=".xlsx,.xls" hidden>
+      </div>
+    </section>
+  </div>
 
   </main>
   </div><!-- #appContent -->

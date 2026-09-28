@@ -29,6 +29,8 @@
     sourceFilterValue: "",
     pendingDelete: null,
     pendingTrackDelete: null,
+    tab: "add",
+    editReturnTab: null,
   };
 
   // ---------- helpers ----------
@@ -558,6 +560,9 @@
   cancelEditBtn.addEventListener("click", () => exitEditMode());
 
   function enterEditMode(rec) {
+    // The form lives in the Add Expense tab; remember where to go back to.
+    if (state.tab !== "add") state.editReturnTab = state.tab;
+    showTab("add");
     state.editId = rec.id;
     document.getElementById("expenseId").value = rec.id;
     document.getElementById("amount").value = rec.amount;
@@ -585,7 +590,40 @@
     formTitle.textContent = "Add Expense";
     submitBtn.textContent = "Add Expense";
     cancelEditBtn.classList.add("hidden");
+    // Finished (or cancelled) an edit that was started from another tab: go back.
+    if (state.editReturnTab) {
+      const back = state.editReturnTab;
+      state.editReturnTab = null;
+      if (state.tab === "add") showTab(back);
+    }
   }
+
+  // ---------- tabs ----------
+
+  const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+
+  function showTab(name) {
+    state.tab = name;
+    tabButtons.forEach((b) => {
+      const on = b.dataset.tab === name;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.querySelectorAll(".tab-pane").forEach((p) => p.classList.toggle("hidden", p.id !== "tab-" + name));
+    // Charts drawn while their tab was hidden have no size; draw them again now.
+    if (name === "dashboard") renderDashboard();
+    window.scrollTo({ top: 0 });
+  }
+
+  tabButtons.forEach((b, i) => {
+    b.addEventListener("click", () => showTab(b.dataset.tab));
+    b.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const next = tabButtons[(i + (e.key === "ArrowRight" ? 1 : -1) + tabButtons.length) % tabButtons.length];
+      next.focus();
+      showTab(next.dataset.tab);
+    });
+  });
 
   function deleteExpense(id) {
     if (isCurrentTrackClosed()) {
